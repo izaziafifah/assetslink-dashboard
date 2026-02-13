@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>PSC Dashboard – Agents</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <style>
+    :root{
+      --bg:#faf9ff; --panel:#ffffff; --border:#e4dcff; --ink:#2f2a44;
+      --ink-soft:#6b5f87; --ink-muted:#8c7ba8; --brand:#7030A0; --brand-soft:#efeaff;
+      --thead:#faf7ff; --chip-bg:#f4f3ff; --link:#6a46ff; --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    body.dark{
+      --bg:#0f1020; --panel:#16172a; --border:#2a2c45; --ink:#e8e6ff;
+      --ink-soft:#c9c4ea; --ink-muted:#a59fcc; --brand:#a78bfa; --brand-soft:#262348;
+      --thead:#1b1c33; --chip-bg:#1e1f39; --link:#bda7ff; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    html,body{height:100%}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;color:var(--ink);background:var(--bg);margin:0}
+    .topbar{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand .logo{width:28px;height:28px;object-fit:contain;background:var(--chip-bg);border-radius:6px}
+    .brand h1{font-size:16px;margin:0;color:var(--brand)}
+    .brand small{color:var(--ink-muted)}
+    .tabs a{margin:0 6px;text-decoration:none;color:var(--ink-soft);padding:6px 10px;border-radius:8px}
+    .tabs a.active{background:var(--brand-soft);color:var(--brand)}
+    .theme-toggle{border:1px solid var(--border);background:transparent;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+
+    main{max-width:1200px;margin:18px auto;padding:0 16px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px;box-shadow:var(--shadow)}
+    h2{margin:0 0 12px 0;color:var(--brand);font-size:18px}
+    .site-footer{max-width:1200px;margin:0 auto 24px auto;color:var(--ink-muted);text-align:center;font-size:12px}
+
+    /* Toolbar */
+    .toolbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .filters label{font-size:12px;color:var(--ink-soft);display:block;margin-bottom:4px}
+    .filters input,.filters select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px}
+    .btn{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);cursor:pointer;font-size:13px}
+    .btn.ghost{background:transparent}
+    .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+    .sort-buttons .sortBtn.active{ border-color: var(--brand); color: var(--brand); }
+
+    /* Table */
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}
+    table{width:100%;table-layout:auto;border-collapse:collapse}
+    th,td{font-size:12px;padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+    thead th{background:var(--thead);color:var(--ink-soft);position:sticky;top:0}
+    .center{text-align:center}
+    .right{text-align:right}
+    .link{color:var(--link);cursor:pointer;text-decoration:underline}
+    .multiline{white-space:normal; word-break:normal; overflow-wrap:anywhere;}
+
+    /* Column sizing (Agents) */
+    th.col-agent,  td.col-agent  { width: 36ch; }
+    th.col-mobile, td.col-mobile { width: 18ch; }
+    th.col-source, td.col-source { width: 12ch; }
+
+    /* Modal (scrollable 1-col) — same pattern as Assets */
+    .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);align-items:center;justify-content:center;z-index:9999}
+    .modal{
+      width:min(720px,92vw);
+      max-height:86vh;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:0;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+      display:flex;flex-direction:column;
+    }
+    .modal-header{padding:16px 16px 8px 16px}
+    .modal-header h3{margin:0;color:var(--ink-soft);font-size:14px}
+    .modal-body{padding:0 16px 12px 16px;overflow:auto;min-height:0}
+    .form-col{display:flex;flex-direction:column;gap:10px}
+    .form-row label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+    .form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px}
+    .modal-actions{position:sticky;bottom:0;padding:12px 16px;display:flex;justify-content:flex-end;gap:10px;background:var(--panel);border-top:1px solid var(--border)}
+  </style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.png" class="logo" alt="logo"/>
+    <div>
+      <h1>PSC Dashboard</h1>
+      <small>Agents</small>
+    </div>
+  </div>
+  <nav class="tabs">
+    <a href="index.html">Dashboard</a>
+    <a href="assets.html">Assets</a>
+    <a href="agents.html" class="active">Agents</a>
+    <a href="search.html">Search</a>
+    <a href="report.html">Report</a>
+    <a href="help.html">Help</a>
+  </nav>
+  <button class="theme-toggle" id="themeBtn" title="Toggle theme">🌙 Dark</button>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Agents Directory</h2>
+
+    <div class="toolbar">
+      <div class="filters">
+        <div>
+          <label>Search</label>
+          <input id="q" type="text" placeholder="Name, Representative, Mobile…">
+        </div>
+        <div>
+          <label>Sort</label>
+          <select id="sortBy">
+            <option value="name">Agent Name (A–Z)</option>
+            <option value="deals_desc">Deals Qty (High→Low)</option>
+            <option value="deals_asc">Deals Qty (Low→High)</option>
+            <option value="value_desc">Total Value (High→Low)</option>
+            <option value="value_asc">Total Value (Low→High)</option>
+            <option value="fee_desc">Referral Fees (High→Low)</option>
+            <option value="fee_asc">Referral Fees (Low→High)</option>
+            <option value="last_desc">Last Sold (Newest)</option>
+            <option value="last_asc">Last Sold (Oldest)</option>
+          </select>
+        </div>
+        <div>
+          <label>Quick Sort</label>
+          <div class="sort-buttons">
+            <button class="btn ghost sortBtn" data-key="deals">Deals</button>
+            <button class="btn ghost sortBtn" data-key="value">Total Value</button>
+            <button class="btn ghost sortBtn" data-key="fee">Referral Fees</button>
+            <button class="btn ghost sortBtn" data-key="last">Last Sold</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn ghost" onclick="document.getElementById('agentCsv').click()">📥 Import CSV</button>
+        <input type="file" id="agentCsv" accept=".csv,text/csv" hidden>
+        <button class="btn ghost" id="btnExport">📤 Export CSV</button>
+        <button class="btn primary" id="btnAdd">➕ Add Agent</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-agent">Agent</th>
+            <th class="col-mobile">Mobile</th>
+            <th class="col-source center">Source</th>
+            <th class="center" style="width:90px">Deals</th>
+            <th class="right"  style="width:140px">Total Value</th>
+            <th class="right"  style="width:140px">Referral Fees</th>
+            <th style="width:120px">Last Sold</th>
+            <th class="center" style="width:200px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="agentTableBody">
+          <tr><td class="center" colspan="8">No agents yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">Fully made by Izazi</footer>
+
+<!-- ===== Modal: Add/Edit Agent (same structure as Assets) ===== -->
+<div id="dlg" class="backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="modal-header">
+      <h3 id="dlgTitle">Add Agent</h3>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-col">
+        <div class="form-row">
+          <label>Agent Name *</label>
+          <input id="fAgentName" placeholder="Agent Sdn Bhd">
+        </div>
+        <div class="form-row">
+          <label>Business Registration No</label>
+          <input id="fBusinessRegistrationNo" placeholder="e.g., 1234567-A">
+        </div>
+        <div class="form-row">
+          <label>Address</label>
+          <textarea id="fAddress" rows="2" placeholder="Company address"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Authorized Representative</label>
+          <input id="fAuthorizedRepresentative" placeholder="Mr./Ms. Name">
+        </div>
+        <div class="form-row">
+          <label>Authorized Representative IC</label>
+          <input id="fAuthorizedRepresentativeIC" placeholder="e.g., 900101-01-1234">
+        </div>
+        <div class="form-row">
+          <label>Contact Office</label>
+          <input id="fContactOffice" placeholder="03-xxxx xxxx">
+        </div>
+        <div class="form-row">
+          <label>Contact Mobile</label>
+          <input id="fContactMobile" placeholder="+60...">
+        </div>
+        <div class="form-row">
+          <label>Email</label>
+          <input id="fEmail" placeholder="name@company.com">
+        </div>
+        <div class="form-row">
+          <label>Source</label>
+          <select id="fSource">
+            <option value="">—</option>
+            <option>INTERNAL</option>
+            <option>EXTERNAL</option>
+            <option>REFERRAL</option>
+            <option>OTHERS</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Received Application Form</label>
+          <select id="fReceivedApplicationForm">
+            <option value="">—</option>
+            <option>YES</option>
+            <option>NO</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Business Activity</label>
+          <input id="fAgentBusinessActivity" placeholder="REN / Auction / Developer…">
+        </div>
+        <div class="form-row">
+          <label>Assets Of Interest</label>
+          <input id="fAssetsOfInterest" placeholder="e.g., Residential, Industrial, Land">
+        </div>
+        <div class="form-row">
+          <label>Supporting Documents Submitted (one per line)</label>
+          <textarea id="fSupportingDocumentsSubmitted" rows="4" placeholder="SSM Form 9&#10;SSM Form 13&#10;Authorization Letter"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnCancel">Cancel</button>
+      <button class="btn primary" id="btnSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* THEME – same logic as Assets */
+(function(){
+  const saved = localStorage.getItem("psc_theme") || "light";
+  if(saved === "dark") document.body.classList.add("dark");
+  const btn = document.getElementById("themeBtn");
+  const update = () => {
+    const dark = document.body.classList.contains("dark");
+    btn.textContent = dark ? "☀️ Light" : "🌙 Dark";
+    btn.title = dark ? "Switch to Light Mode" : "Switch to Dark Mode";
+  };
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("psc_theme", document.body.classList.contains("dark") ? "dark" : "light");
+    update();
+  });
+  update();
+})();
+
+/* STORAGE */
+const AGENT_KEY = "psc_agents";
+const ASSET_KEY = "psc_assets";
+function getAgents(){ return JSON.parse(localStorage.getItem(AGENT_KEY) || "[]"); }
+function saveAgents(d){ localStorage.setItem(AGENT_KEY, JSON.stringify(d)); }
+function getAssets(){ return JSON.parse(localStorage.getItem(ASSET_KEY) || "[]"); }
+
+/* HELPERS – match Assets style */
+const $ = (id)=> document.getElementById(id);
+function h(s){ return String(s??"").replace(/[&<>\"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function money(n){ return "RM " + Number(n||0).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function parseDate(s){
+  if(!s) return null;
+  const str = String(s).trim();
+  if(str.includes("/")){ const [d,m,y]=str.split("/"); const dt=new Date(+y, +m-1, +d); return isNaN(dt)?null:dt; }
+  const dt = new Date(str); return isNaN(dt)?null:dt;
+}
+function formatMY(d){ return d ? d.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'}) : "—"; }
+function rateToPercent(raw){ const r = +raw || 0; return r <= 1 ? r*100 : r; } // 0.0125 => 1.25%
+
+/* Normalization for company names (stable key) */
+function normalizeCompany(s){
+  let x = String(s||"").toUpperCase();
+  x = x.replace(/[.,]/g,' ').replace(/\s+/g,' ').trim();
+  const suffixes = ["SENDIRIAN BERHAD","SDN BERHAD","SDN BHD","BERHAD","BHD"];
+  let changed = true;
+  while(changed){
+    changed = false;
+    for(const suf of suffixes){
+      if(x === suf){ x = ""; changed = true; break; }
+      if(x.endsWith(" " + suf)){
+        x = x.slice(0, -(" " + suf).length).trim();
+        changed = true; break;
+      }
+    }
+  }
+  return x;
+}
+function agentKey(s){ return normalizeCompany(s); }
+
+/* Deals metrics (computed from Assets) */
+function dealsForAgent(name){
+  const A = getAssets();
+  const key = agentKey(name);
+  const list = A.filter(x => agentKey(x.SuccessfulAgent) === key);
+  const sold = list.filter(x => String(x.Status||"").toUpperCase() === "SOLD");
+  const qty  = sold.length;
+  const val  = sold.reduce((t,x)=> t + (+x.SalePrice || 0), 0);
+  const fee  = sold.reduce((t,x)=>{
+    const explicit = +x.ReferralFeeAmount || 0;
+    if(explicit > 0) return t + explicit;
+    const pct = rateToPercent(x.ReferralFeeRatePct);
+    return t + (+x.SalePrice||0) * (pct/100);
+  }, 0);
+  const last = sold.map(x => parseDate(x.SoldDate)).filter(Boolean).sort((a,b)=> b-a)[0] || null;
+  const buyers = [...new Set(list.map(x => x.BuyerName || x.CustomerName).filter(Boolean))];
+  return {qty,val,fee,last,buyers};
+}
+
+/* STATE – like Assets */
+const state = {
+  q: localStorage.getItem("agents_q") || "",
+  sort: localStorage.getItem("agents_sort") || "name",
+  dir: localStorage.getItem("agents_sort_dir") || "desc"
+};
+function applyToolbarState(){
+  $("q").value = state.q;
+  $("sortBy").value = state.sort;
+  highlightSortButtons();
+}
+function persistToolbarState(){
+  localStorage.setItem("agents_q", $("q").value.trim());
+  localStorage.setItem("agents_sort", $("sortBy").value);
+  localStorage.setItem("agents_sort_dir", state.dir);
+}
+
+/* RENDER */
+function renderAgents(){
+  const tbody = $("agentTableBody");
+
+  const q = $("q").value.trim().toUpperCase();
+  const sortBy = $("sortBy").value;
+
+  const all = getAgents();
+  if(!all.length){
+    tbody.innerHTML = `<tr><td class="center" colspan="8">No agents yet</td></tr>`;
+    return;
+  }
+
+  // Map rows + metrics
+  const rows = all.map((a,i)=>{
+    const name = (a.AgentName||"").trim();
+    const d = dealsForAgent(name);
+    return {
+      idx:i,
+      name,
+      rep: a.AuthorizedRepresentative || a.AuthorizedRep || "",
+      src: (a.Source || "").toUpperCase(),
+      mobile: a.ContactMobile || "",
+      qty: d.qty, val: d.val, fee: d.fee, last: d.last, buyers: d.buyers
+    };
+  });
+
+  // Search filter
+  const filtered = rows.filter(r=>{
+    if(!q) return true;
+    return [r.name, r.rep, r.mobile].some(v => String(v||"").toUpperCase().includes(q));
+  });
+
+  // Sort
+  filtered.sort((a,b)=>{
+    switch(sortBy){
+      case "deals_desc": return (b.qty - a.qty) || (b.val - a.val) || a.name.localeCompare(b.name);
+      case "deals_asc":  return (a.qty - b.qty) || (a.val - b.val) || a.name.localeCompare(b.name);
+      case "value_desc": return (b.val - a.val) || (b.qty - a.qty) || a.name.localeCompare(b.name);
+      case "value_asc":  return (a.val - b.val) || (a.qty - b.qty) || a.name.localeCompare(b.name);
+      case "fee_desc":   return (b.fee - a.fee) || (b.qty - a.qty) || a.name.localeCompare(b.name);
+      case "fee_asc":    return (a.fee - b.fee) || (a.qty - b.qty) || a.name.localeCompare(b.name);
+      case "last_desc":  return ((b.last?b.last.getTime():0) - (a.last?a.last.getTime():0)) || a.name.localeCompare(b.name);
+      case "last_asc":   return ((a.last?a.last.getTime():0) - (b.last?b.last.getTime():0)) || a.name.localeCompare(b.name);
+      default:           return a.name.localeCompare(b.name);
+    }
+  });
+
+  // Render rows
+  tbody.innerHTML = filtered.map(r=>{
+    const telHref = r.mobile ? `tel:${String(r.mobile).replace(/[^\d+]/g,"")}` : "";
+    const tel = r.mobile ? `<a class="link" href="${telHref}">${h(r.mobile)}</a>` : "—";
+    const assetsHref = `assets.html?agent=${encodeURIComponent(r.name)}&status=SOLD`;
+
+    return `
+      <tr>
+        <td class="col-agent">
+          <div><a class="link" href="#" onclick="openAgentSearch(${r.idx});return false;">${h(r.name)}</a></div>
+          <div class="muted" style="color:var(--ink-muted)">${h(r.rep || "—")}</div>
+        </td>
+        <td class="col-mobile">${tel}</td>
+        <td class="col-source center">${h(r.src || "—")}</td>
+        <td class="center">${r.qty}</td>
+        <td class="right">${money(r.val)}</td>
+        <td class="right">${money(r.fee)}</td>
+        <td>${formatMY(r.last)}</td>
+        <td class="center">
+          ${
+            r.qty
+              ? `<button class="btn ghost" onclick="toggleBuyers(${r.idx})">View (${r.buyers.length || 0})</button>`
+              : `<button class="btn ghost" disabled>No Deals</button>`
+          }
+          <a class="btn ghost" href="${assetsHref}">Open</a>
+          <button class="btn ghost" onclick="onEdit(${r.idx})">✏️ Edit</button>
+          <button class="btn ghost" onclick="deleteAgent(${r.idx})">🗑</button>
+        </td>
+      </tr>
+      <tr id="buyers-${r.idx}" style="display:none;background:var(--chip-bg)">
+        <td colspan="8">
+          <div style="padding:10px 12px;font-size:12px">
+            <strong>Buyers of ${h(r.name)}:</strong>
+            ${
+              (r.buyers && r.buyers.length)
+                ? `<ul style="margin:6px 0 0 16px">${r.buyers.map(b=>`<li>${h(b)}</li>`).join("")}</ul>`
+                : `<div class="muted" style="color:var(--ink-muted)">No buyers found.</div>`
+            }
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("") || `<tr><td class="center" colspan="8">No agents match your search.</td></tr>`;
+
+  // Clear button visibility
+  const showClear = !!q;
+  // You can add a clear button like Assets if you want; omitted here for simplicity
+}
+
+function toggleBuyers(i){
+  const r = $("buyers-"+i);
+  if(!r) return;
+  r.style.display = (r.style.display==="none" || !r.style.display) ? "table-row" : "none";
+}
+
+function deleteAgent(i){
+  if(!confirm("Delete this agent?")) return;
+  const list = getAgents(); list.splice(i,1); saveAgents(list); renderAgents();
+}
+
+/* CSV – parser/export aligned with Assets */
+function parseCSV(text){
+  text = String(text||"").replace(/^\uFEFF/,"");
+  const rows = [];
+  let row = [], col = "", i = 0, inQuotes = false;
+  while(i < text.length){
+    const ch = text[i];
+    if(ch === '"'){
+      if(inQuotes && text[i+1] === '"'){ col += '"'; i += 2; continue; }
+      inQuotes = !inQuotes; i++; continue;
+    }
+    if(ch === ',' && !inQuotes){ row.push(col); col = ""; i++; continue; }
+    if((ch === '\n' || ch === '\r') && !inQuotes){
+      if(ch === '\r' && text[i+1] === '\n') i++;
+      rows.push(row.concat(col)); row = []; col = ""; i++; continue;
+    }
+    col += ch; i++;
+  }
+  if(col.length > 0 || inQuotes || row.length) rows.push(row.concat(col));
+  return rows;
+}
+function csvEscape(v){
+  let s = String(v ?? "");
+  if(/[",\r\n]/.test(s)){ s = '"' + s.replace(/"/g,'""') + '"'; }
+  return s;
+}
+function exportAgents(){
+  const agents = getAgents();
+  const headers = [
+    "ReceivedApplicationForm","Source","AgentBusinessActivity","AssetsOfInterest",
+    "AgentName","BusinessRegistrationNo","Address","AuthorizedRepresentative",
+    "AuthorizedRepresentativeIC","ContactOffice","ContactMobile","Email",
+    "SupportingDocumentsSubmitted"
+  ];
+  const lines = [];
+  lines.push(headers.map(csvEscape).join(","));
+  if(agents.length){
+    agents.forEach(a => lines.push(headers.map(hd => csvEscape(a[hd] ?? "")).join(",")));
+  }else{
+    lines.push(headers.map(()=> "").join(",")); // template row
+  }
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8;"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = agents.length ? "agents.csv" : "agents_template.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$("btnExport").addEventListener("click", exportAgents);
+
+$("agentCsv").addEventListener("change", (e)=>{
+  const file = e.target.files?.[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const rows = parseCSV(reader.result);
+      if(!rows.length) return alert("Empty CSV");
+      const hdr = rows.shift().map(x=>String(x||""));
+      const idx = name => hdr.findIndex(h => String(h).trim().toUpperCase() === name.toUpperCase());
+      const H = {
+        ReceivedApplicationForm: idx("ReceivedApplicationForm"),
+        Source: idx("Source"),
+        AgentBusinessActivity: idx("AgentBusinessActivity"),
+        AssetsOfInterest: idx("AssetsOfInterest"),
+        AgentName: idx("AgentName"),
+        BusinessRegistrationNo: idx("BusinessRegistrationNo"),
+        Address: idx("Address"),
+        AuthorizedRepresentative: idx("AuthorizedRepresentative"),
+        AuthorizedRepresentativeIC: idx("AuthorizedRepresentativeIC"),
+        ContactOffice: idx("ContactOffice"),
+        ContactMobile: idx("ContactMobile"),
+        Email: idx("Email"),
+        SupportingDocumentsSubmitted: idx("SupportingDocumentsSubmitted"),
+        // fallbacks
+        BusinessActivity: idx("BusinessActivity"),
+        AuthorizedRep: idx("AuthorizedRep"),
+        ReceivedForm: idx("ReceivedForm")
+      };
+      if(H.AgentName < 0) return alert("CSV must include 'AgentName' column.");
+
+      const incoming = rows.map(r => ({
+        ReceivedApplicationForm: H.ReceivedApplicationForm>=0 ? r[H.ReceivedApplicationForm] : (H.ReceivedForm>=0 ? r[H.ReceivedForm] : ""),
+        Source: H.Source>=0 ? r[H.Source] : "",
+        AgentBusinessActivity: H.AgentBusinessActivity>=0 ? r[H.AgentBusinessActivity] : (H.BusinessActivity>=0 ? r[H.BusinessActivity] : ""),
+        AssetsOfInterest: H.AssetsOfInterest>=0 ? r[H.AssetsOfInterest] : "",
+        AgentName: r[H.AgentName] || "",
+        BusinessRegistrationNo: H.BusinessRegistrationNo>=0 ? r[H.BusinessRegistrationNo] : "",
+        Address: H.Address>=0 ? r[H.Address] : "",
+        AuthorizedRepresentative: H.AuthorizedRepresentative>=0 ? r[H.AuthorizedRepresentative] : (H.AuthorizedRep>=0 ? r[H.AuthorizedRep] : ""),
+        AuthorizedRepresentativeIC: H.AuthorizedRepresentativeIC>=0 ? r[H.AuthorizedRepresentativeIC] : "",
+        ContactOffice: H.ContactOffice>=0 ? r[H.ContactOffice] : "",
+        ContactMobile: H.ContactMobile>=0 ? r[H.ContactMobile] : "",
+        Email: H.Email>=0 ? r[H.Email] : "",
+        SupportingDocumentsSubmitted: H.SupportingDocumentsSubmitted>=0 ? r[H.SupportingDocumentsSubmitted] : ""
+      })).filter(x => x.AgentName && x.AgentName.trim());
+
+      const existing = getAgents();
+      const map = new Map(existing.map(a => [agentKey(a.AgentName), a]));
+      incoming.forEach(n=>{
+        const k = agentKey(n.AgentName);
+        if(map.has(k)){ Object.assign(map.get(k), n); }
+        else map.set(k, n);
+      });
+      const merged = Array.from(map.values()).sort((a,b)=> String(a.AgentName||"").localeCompare(String(b.AgentName||"")));
+      saveAgents(merged);
+      renderAgents();
+      alert("Import completed.");
+    }catch(err){
+      console.error(err);
+      alert("Import failed. Please check the CSV format.");
+    }
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+});
+
+/* ADD/EDIT MODAL – same pattern as Assets */
+let editingIndex = null;
+function openDlg(mode, index){
+  $("dlgTitle").textContent = mode==="add" ? "Add Agent" : "Edit Agent";
+  const dlg = $("dlg"); dlg.style.display = "flex"; dlg.setAttribute("aria-hidden","false");
+
+  const ids = [
+    "fAgentName","fBusinessRegistrationNo","fAddress",
+    "fAuthorizedRepresentative","fAuthorizedRepresentativeIC",
+    "fContactOffice","fContactMobile","fEmail","fSource",
+    "fReceivedApplicationForm","fAgentBusinessActivity",
+    "fAssetsOfInterest","fSupportingDocumentsSubmitted"
+  ];
+
+  if(mode==="add"){
+    editingIndex = null;
+    ids.forEach(id => { const el=$(id); if(!el) return; el.value = ""; });
+  }else{
+    editingIndex = index;
+    const a = getAgents()[index];
+    $("fAgentName").value = a.AgentName || "";
+    $("fBusinessRegistrationNo").value = a.BusinessRegistrationNo || "";
+    $("fAddress").value = a.Address || "";
+    $("fAuthorizedRepresentative").value = a.AuthorizedRepresentative || a.AuthorizedRep || "";
+    $("fAuthorizedRepresentativeIC").value = a.AuthorizedRepresentativeIC || "";
+    $("fContactOffice").value = a.ContactOffice || "";
+    $("fContactMobile").value = a.ContactMobile || "";
+    $("fEmail").value = a.Email || "";
+    $("fSource").value = (a.Source || "").toUpperCase();
+    $("fReceivedApplicationForm").value = (a.ReceivedApplicationForm || a.ReceivedForm || "");
+    $("fAgentBusinessActivity").value = a.AgentBusinessActivity || a.BusinessActivity || "";
+    $("fAssetsOfInterest").value = a.AssetsOfInterest || "";
+    $("fSupportingDocumentsSubmitted").value = a.SupportingDocumentsSubmitted || "";
+  }
+
+  document.addEventListener("keydown", escHandler);
+}
+function onEdit(i){ openDlg("edit", i); }
+function closeDlg(){
+  $("dlg").style.display = "none"; $("dlg").setAttribute("aria-hidden","true");
+  document.removeEventListener("keydown", escHandler);
+}
+function escHandler(e){ if(e.key === "Escape") closeDlg(); }
+
+$("btnAdd").addEventListener("click", ()=> openDlg("add"));
+$("btnCancel").addEventListener("click", closeDlg);
+$("dlg").addEventListener("click", (e)=>{ if(e.target.id==="dlg") closeDlg(); });
+
+$("btnSave").addEventListener("click", ()=>{
+  const rec = {
+    AgentName: $("fAgentName").value.trim(),
+    BusinessRegistrationNo: $("fBusinessRegistrationNo").value.trim(),
+    Address: $("fAddress").value.trim(),
+    AuthorizedRepresentative: $("fAuthorizedRepresentative").value.trim(),
+    AuthorizedRepresentativeIC: $("fAuthorizedRepresentativeIC").value.trim(),
+    ContactOffice: $("fContactOffice").value.trim(),
+    ContactMobile: $("fContactMobile").value.trim(),
+    Email: $("fEmail").value.trim(),
+    Source: $("fSource").value.trim().toUpperCase(),
+    ReceivedApplicationForm: $("fReceivedApplicationForm").value.trim().toUpperCase(),
+    AgentBusinessActivity: $("fAgentBusinessActivity").value.trim(),
+    AssetsOfInterest: $("fAssetsOfInterest").value.trim(),
+    SupportingDocumentsSubmitted: $("fSupportingDocumentsSubmitted").value
+  };
+  // compatibility aliases used in older data
+  rec.AuthorizedRep = rec.AuthorizedRepresentative;
+  rec.BusinessActivity = rec.AgentBusinessActivity;
+  rec.ReceivedForm = rec.ReceivedApplicationForm;
+
+  if(!rec.AgentName) return alert("Agent Name is required.");
+
+  const list = getAgents();
+  if(editingIndex===null){
+    // add or merge by normalized company name
+    const k = agentKey(rec.AgentName);
+    const i = list.findIndex(x => agentKey(x.AgentName) === k);
+    if(i >= 0){
+      if(!confirm("Agent exists. Update existing record?")) return;
+      list[i] = {...list[i], ...rec};
+    }else{
+      list.push(rec);
+    }
+  }else{
+    list[editingIndex] = {...list[editingIndex], ...rec};
+  }
+  list.sort((a,b)=> String(a.AgentName||"").localeCompare(String(b.AgentName||"")));
+  saveAgents(list);
+  closeDlg();
+  renderAgents();
+});
+
+/* QUICK SORT – same UX pattern as Assets */
+function setSortKey(key){
+  const currentKey = ($("sortBy").value || "name").replace(/_(asc|desc)$/,'');
+  if(currentKey === key){
+    state.dir = (state.dir === "desc") ? "asc" : "desc";
+  }else{
+    state.dir = "desc";
+  }
+  $("sortBy").value = key + "_" + state.dir;
+  persistToolbarState();
+  highlightSortButtons();
+  renderAgents();
+}
+function highlightSortButtons(){
+  const currentKey = ($("sortBy").value || "name").replace(/_(asc|desc)$/,'');
+  document.querySelectorAll(".sort-buttons .sortBtn").forEach(btn=>{
+    const label = btn.dataset.key.charAt(0).toUpperCase()+btn.dataset.key.slice(1);
+    const active = btn.dataset.key === currentKey;
+    btn.classList.toggle("active", active);
+    btn.textContent = active ? `${label} ${state.dir==="asc"?"↑":"↓"}` : label;
+  });
+}
+
+/* FILTER/SORT HANDLERS – same as Assets */
+["q","sortBy"].forEach(id=>{
+  $(id).addEventListener("input", ()=>{ persistToolbarState(); renderAgents(); });
+  $(id).addEventListener("change", ()=>{ persistToolbarState(); renderAgents(); });
+});
+document.addEventListener("DOMContentLoaded", ()=>{
+  document.querySelectorAll(".sort-buttons .sortBtn").forEach(btn=>{
+    btn.addEventListener("click", ()=> setSortKey(btn.dataset.key));
+  });
+});
+
+/* OPEN IN SEARCH with full context (so Search shows all fields) */
+function openAgentSearch(index){
+  const a = getAgents()[index];
+  if(a){
+    const payload = { mode: "agent", agent: {
+      ReceivedApplicationForm: a.ReceivedApplicationForm || a.ReceivedForm || "",
+      Source: a.Source || "",
+      AgentBusinessActivity: a.AgentBusinessActivity || a.BusinessActivity || "",
+      AssetsOfInterest: a.AssetsOfInterest || "",
+      AgentName: a.AgentName || "",
+      BusinessRegistrationNo: a.BusinessRegistrationNo || "",
+      Address: a.Address || "",
+      AuthorizedRepresentative: a.AuthorizedRepresentative || a.AuthorizedRep || "",
+      AuthorizedRepresentativeIC: a.AuthorizedRepresentativeIC || "",
+      ContactOffice: a.ContactOffice || "",
+      ContactMobile: a.ContactMobile || "",
+      Email: a.Email || "",
+      SupportingDocumentsSubmitted: a.SupportingDocumentsSubmitted || ""
+    }};
+    sessionStorage.setItem("psc_search_context", JSON.stringify(payload));
+  }
+  location.href = `search.html?mode=agent&q=${encodeURIComponent(a?.AgentName || "")}`;
+}
+
+/* INIT */
+applyToolbarState();
+renderAgents();
+</script>
+
+</body>
+</html>
