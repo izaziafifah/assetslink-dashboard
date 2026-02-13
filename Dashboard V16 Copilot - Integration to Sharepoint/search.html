@@ -1,0 +1,337 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PSC Dashboard – Search</title>
+<style>
+  :root{
+    --bg:#faf9ff; --panel:#ffffff; --border:#e4dcff; --ink:#2f2a44;
+    --ink-soft:#6b5f87; --ink-muted:#8c7ba8; --brand:#7030A0; --brand-soft:#efeaff;
+    --chip-bg:#f4f3ff; --link:#6a46ff; --shadow: 0 10px 30px rgba(0,0,0,.08);
+    --green:#16a34a; --red:#dc2626;
+  }
+  body.dark{
+    --bg:#0f1020; --panel:#16172a; --border:#2a2c45; --ink:#e8e6ff;
+    --ink-soft:#c9c4ea; --ink-muted:#a59fcc; --brand:#a78bfa; --brand-soft:#262348;
+    --chip-bg:#1e1f39; --link:#bda7ff; --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;color:var(--ink);background:var(--bg);margin:0}
+  .topbar{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+  .brand{display:flex;gap:12px;align-items:center}
+  .brand .logo{width:28px;height:28px;object-fit:contain;background:var(--chip-bg);border-radius:6px}
+  .brand h1{font-size:16px;margin:0;color:var(--brand)}
+  .brand small{color:var(--ink-muted)}
+  .tabs a{margin:0 6px;text-decoration:none;color:var(--ink-soft);padding:6px 10px;border-radius:8px}
+  .tabs a.active{background:var(--brand-soft);color:var(--brand)}
+  .theme-toggle{border:1px solid var(--border);background:transparent;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+
+  main{max-width:1200px;margin:18px auto;padding:0 16px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px;box-shadow:var(--shadow)}
+  h2{margin:0 0 12px 0;color:var(--brand);font-size:18px}
+  .site-footer{max-width:1200px;margin:0 auto 24px auto;color:var(--ink-muted);text-align:center;font-size:12px}
+
+  .search-bar{display:grid;grid-template-columns:160px 1fr 120px;gap:10px;margin-bottom:14px}
+  .search-bar input,.search-bar select{padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink)}
+  .search-bar button{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);cursor:pointer}
+
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width: 900px){ .result-grid{ grid-template-columns:1fr; } }
+
+  .card{border:1px solid var(--border);border-radius:12px;padding:14px;font-size:13px;background:var(--panel);box-shadow:var(--shadow)}
+  .card h3{margin-top:0;margin-bottom:10px;color:var(--ink-soft);font-size:14px}
+  .row{margin-bottom:6px}
+  .label{font-weight:600}
+  .highlight{color:var(--brand);font-weight:700}
+  .muted{color:var(--ink-muted)}
+  ul{padding-left:18px;margin:6px 0}
+  .multiline{white-space:pre-wrap; word-break:break-word}
+  .badge{display:inline-block;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:2px 8px;font-size:11px;margin-left:8px}
+  .pill{display:inline-block;border:1px solid var(--border);background:var(--chip-bg);color:var(--ink-soft);border-radius:999px;padding:2px 8px;font-size:11px;margin-right:6px}
+  a.link{color:var(--link);text-decoration:underline}
+</style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.png" class="logo" alt="logo"/>
+    <div>
+      <h1>PSC Dashboard</h1>
+      <small>Search</small>
+    </div>
+  </div>
+  <nav class="tabs">
+    <a href="index.html">Dashboard</a>
+    <a href="assets.html">Assets</a>
+    <a href="agents.html">Agents</a>
+    <a href="search.html" class="active">Search</a>
+    <a href="report.html">Report</a>
+    <a href="help.html">Help</a>
+  </nav>
+  <button class="theme-toggle" id="themeBtn" title="Toggle theme">🌙 Dark</button>
+</header>
+
+<main>
+<section class="panel">
+  <h2>Search Asset / Agent</h2>
+
+  <div class="search-bar">
+    <select id="searchType" title="Search type">
+      <option value="asset">Find Asset</option>
+      <option value="agent">Find Agent</option>
+    </select>
+    <input id="searchInput" placeholder="Type Asset ID or Customer Name (Asset) / Agent Name (Agent)"/>
+    <button onclick="runSearch()">Search</button>
+  </div>
+
+  <div id="results"></div>
+</section>
+</main>
+
+<footer class="site-footer">Fully made by Izazi</footer>
+
+<script>
+/* THEME */
+(function(){
+  const saved = localStorage.getItem("psc_theme") || "light";
+  if(saved === "dark") document.body.classList.add("dark");
+  const btn = document.getElementById("themeBtn");
+  function update(){ const dark = document.body.classList.contains("dark");
+    btn.textContent = dark ? "☀️ Light" : "🌙 Dark";
+    btn.title = dark ? "Switch to Light Mode" : "Switch to Dark Mode";
+  }
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("psc_theme", document.body.classList.contains("dark") ? "dark" : "light");
+    update();
+  });
+  update();
+})();
+
+/* STORAGE */
+const ASSET_KEY = "psc_assets";
+const AGENT_KEY = "psc_agents";
+function getAssets(){ return JSON.parse(localStorage.getItem(ASSET_KEY) || "[]"); }
+function getAgents(){ return JSON.parse(localStorage.getItem(AGENT_KEY) || "[]"); }
+
+/* UTIL */
+function h(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function nl2br(s){ return h(s).replace(/\r\n|\r|\n/g,"<br>"); }
+function money(n){ return "RM " + Number(n||0).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function row(label, valueHtml){
+  if(valueHtml === undefined || valueHtml === null || valueHtml === "") return "";
+  return `<div class="row"><span class="label">${label}:</span> ${valueHtml}</div>`;
+}
+function parseDate(s){
+  if(!s) return null;
+  const str = String(s).trim();
+  if(str.includes("/")){ const [d,m,y]=str.split("/"); const dt=new Date(+y, +m-1, +d); return isNaN(dt)?null:dt; }
+  const dt = new Date(str); return isNaN(dt)?null:dt;
+}
+
+/* Fee calculation: supports 1.25 or 0.0125 */
+function referralFeeCalc(salePrice, rate){
+  const price = +salePrice || 0;
+  let r = +rate || 0;
+  if(r <= 1) { r = r * 100; } // interpret 0.0125 as 1.25%
+  return price * (r/100);
+}
+
+/* Normalization (for agent matching if needed) */
+function normalizeCompany(s){
+  let x = String(s||"").toUpperCase();
+  x = x.replace(/[.,]/g,' ').replace(/\s+/g,' ').trim();
+  const suffixes = ["SENDIRIAN BERHAD","SDN BERHAD","SDN BHD","BERHAD","BHD"];
+  let changed = true;
+  while(changed){
+    changed = false;
+    for(const suf of suffixes){
+      if(x === suf){ x = ""; changed = true; break; }
+      if(x.endsWith(" " + suf)){
+        x = x.slice(0, -(" " + suf).length).trim();
+        changed = true; break;
+      }
+    }
+  }
+  return x;
+}
+function agentKey(s){ return normalizeCompany(s); }
+
+/* ============== RENDER ASSET (FULL FIELDS) ============== */
+function renderAssetFull(a){
+  const feeAuto = referralFeeCalc(a.SalePrice, a.ReferralFeeRatePct);
+
+  return `
+  <div class="result-grid">
+    <div class="card">
+      <h3>Asset Details <span class="badge">${h(a.AssetID||'')}</span></h3>
+      ${row("AssetID", h(a.AssetID))}
+      ${row("Entity", h(a.Entity))}
+      ${row("Customer Name", nl2br(a.CustomerName))}
+      ${row("Status", h(a.Status))}
+      ${row("Listing Date", h(a.ListingDate))}
+      ${row("Sold Date", h(a.SoldDate))}
+      ${row("Channel", h(a.Channel))}
+      ${row("Sale Price", a.SalePrice ? money(a.SalePrice) : "–")}
+      ${row("State", h(a.State))}
+      ${row("Tenure", h(a.Tenure))}
+      ${row("Category", h(a.Category))}
+      ${row("Auction Date", h(a.AuctionDate))}
+      ${row("Address", nl2br(a.Address))}
+      ${row("Notes", nl2br(a.Notes))}
+    </div>
+
+    <div class="card">
+      <h3>Parties & Fees</h3>
+      ${row("Successful Agent", nl2br(a.SuccessfulAgent))}
+      ${row("Buyer Name", nl2br(a.BuyerName))}
+      ${row("Referral Fee %", (a.ReferralFeeRatePct ?? "") === "" ? "" : `${h(a.ReferralFeeRatePct)}%`)}
+      ${row("Payment Status", h(a.PaymentStatus))}
+      ${row("Reserve Price", a.ReservePrice ? money(a.ReservePrice) : "–")}
+      ${row("Estimated Market Price", a.EstMarketPrice ? money(a.EstMarketPrice) : "–")}
+      ${row("Referral Fee (auto)", `<span class="highlight">${money(feeAuto)}</span>`)}
+    </div>
+  </div>`;
+}
+
+/* ============== RENDER AGENT (kept from your earlier version) ============== */
+function docsList(docs){
+  if(!docs || !String(docs).trim()) return "";
+  const parts = String(docs).split(/\r\n|\r|\n/).map(s=>s.trim()).filter(Boolean);
+  if(!parts.length) return "";
+  return `<ul>${parts.map(x=>`<li>${h(x)}</li>`).join("")}</ul>`;
+}
+function renderAgentFull(agent){
+  // Link assets by normalized name
+  const assets = getAssets().filter(x => agentKey(x.SuccessfulAgent) === agentKey(agent.AgentName));
+  const buyers = [...new Set(assets.map(x=>x.BuyerName || x.CustomerName).filter(Boolean))];
+  return `
+    <div class="result-grid">
+      <div class="card">
+        <h3>Agent Details</h3>
+        ${row("Received Form", h(agent.ReceivedApplicationForm))}
+        ${row("Source", h(agent.Source))}
+        ${row("Business Activity", h(agent.AgentBusinessActivity))}
+        ${row("Assets Of Interest", h(agent.AssetsOfInterest))}
+        ${row("Agent Name", h(agent.AgentName))}
+        ${row("Business Registration No", h(agent.BusinessRegistrationNo))}
+        ${row("Address", h(agent.Address))}
+        ${row("Authorized Representative", h(agent.AuthorizedRepresentative))}
+        ${row("Authorized Representative IC", h(agent.AuthorizedRepresentativeIC))}
+        ${row("Contact Office", h(agent.ContactOffice))}
+        ${row("Contact Mobile", h(agent.ContactMobile))}
+        ${row("Email", h(agent.Email))}
+        ${row("Supporting Documents Submitted", docsList(agent.SupportingDocumentsSubmitted))}
+      </div>
+      <div class="card">
+        <h3>Linked Assets</h3>
+        ${
+          assets.length
+            ? `
+              ${buyers.length ? `<div class="row"><span class="label">Buyers:</span> ${buyers.map(b=>`<span class="pill">${h(b)}</span>`).join(" ")}</div>` : ""}
+              <ul>
+                ${assets.map(x=>`<li>${h(x.AssetID)} — ${h(x.CustomerName||'-')} (${h(x.Status||'-')})</li>`).join("")}
+              </ul>
+            `
+            : "<p class='muted'>No assets linked.</p>"
+        }
+      </div>
+    </div>
+  `;
+}
+
+/* ============== SEARCH LOGIC ============== */
+function runSearch(){
+  const q = document.getElementById("searchInput").value.trim();
+  const type = document.getElementById("searchType").value;
+  const el = document.getElementById("results");
+  el.innerHTML = "";
+
+  if(!q){ el.innerHTML = "<p>Please enter a search keyword.</p>"; return; }
+
+  if(type === "asset"){
+    // Try exact AssetID
+    const all = getAssets();
+    let asset = all.find(a => String(a.AssetID||"").toLowerCase() === q.toLowerCase());
+    if(!asset){
+      // then fuzzy
+      const matches = all.filter(a =>
+        String(a.AssetID||"").toLowerCase().includes(q.toLowerCase()) ||
+        String(a.CustomerName||"").toLowerCase().includes(q.toLowerCase())
+      );
+      if(matches.length === 0){ el.innerHTML = "<p>No asset found.</p>"; return; }
+      if(matches.length > 1){
+        el.innerHTML = `
+          <div class="card">
+            <h3>Multiple assets found <span class="badge">${matches.length}</span></h3>
+            <ul>
+              ${matches.map(a=>`
+                <li>
+                  <a class="link" href="search.html?q=${encodeURIComponent(a.AssetID)}&mode=asset">
+                    ${h(a.AssetID)} — ${h(a.CustomerName||'-')} (${h(a.Status||'-')})
+                  </a>
+                </li>`).join("")}
+            </ul>
+          </div>`;
+        return;
+      }
+      asset = matches[0];
+    }
+    el.innerHTML = renderAssetFull(asset);
+    return;
+  }
+
+  if(type === "agent"){
+    const agents = getAgents().filter(a => String(a.AgentName||"").toLowerCase().includes(q.toLowerCase()));
+    if(!agents.length){ el.innerHTML = "<p>No agent found.</p>"; return; }
+    const agent = agents[0];
+    el.innerHTML = renderAgentFull(agent);
+    return;
+  }
+}
+
+/* ============== AUTO LOAD (Session context first, then URL) ============== */
+(function(){
+  const params = new URLSearchParams(location.search);
+  const q = params.get("q");
+  const mode = params.get("mode");
+
+  // Prefer full context from sessionStorage
+  const raw = sessionStorage.getItem("psc_search_context");
+  if(raw){
+    try{
+      const ctx = JSON.parse(raw);
+      if(ctx && ctx.mode === "asset" && ctx.asset){
+        // Pre-fill controls and render
+        document.getElementById("searchInput").value = ctx.asset.AssetID || "";
+        document.getElementById("searchType").value = "asset";
+        document.getElementById("results").innerHTML = renderAssetFull(ctx.asset);
+        sessionStorage.removeItem("psc_search_context");
+        return;
+      }
+      if(ctx && ctx.mode === "agent" && ctx.agent){
+        document.getElementById("searchInput").value = ctx.agent.AgentName || "";
+        document.getElementById("searchType").value = "agent";
+        document.getElementById("results").innerHTML = renderAgentFull(ctx.agent);
+        sessionStorage.removeItem("psc_search_context");
+        return;
+      }
+    }catch(e){
+      // ignore
+    }
+    sessionStorage.removeItem("psc_search_context");
+  }
+
+  // URL fallback
+  if(q){
+    document.getElementById("searchInput").value = q;
+    document.getElementById("searchType").value = mode === "agent" ? "agent" : "asset";
+    runSearch();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PSC Dashboard – Report</title>
+  <style>
+    /* ================= THEME ================= */
+    :root{
+      --bg:#faf9ff; --panel:#ffffff; --border:#e4dcff; --ink:#2f2a44;
+      --ink-soft:#6b5f87; --ink-muted:#8c7ba8; --brand:#7030A0; --brand-soft:#efeaff;
+      --thead:#faf7ff; --chip-bg:#f4f3ff; --num:#4b2a7a; --link:#6a46ff;
+      --hbar-track:#f1edff; --hbar-fill:#9b78ff; --green:#16a34a; --red:#dc2626;
+      --accent:#ff7a59; --accent-soft:rgba(255,122,89,.12);
+      --tri-green:#2e7d32; --tri-green-dark:#1b5e20;
+    }
+    body.dark{
+      --bg:#0f1020; --panel:#16172a; --border:#2a2c45; --ink:#e8e6ff;
+      --ink-soft:#c9c4ea; --ink-muted:#a59fcc; --brand:#a78bfa; --brand-soft:#262348;
+      --thead:#1b1c33; --chip-bg:#1e1f39; --num:#a78bfa; --link:#bda7ff;
+      --hbar-track:#252747; --hbar-fill:#b8a5ff;
+      --accent:#ffa382; --tri-green:#43a047; --tri-green-dark:#2e7d32;
+    }
+
+    /* ================= BASE ================= */
+    html,body{height:100%}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;color:var(--ink);background:var(--bg);margin:0}
+    .topbar{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand .logo{width:28px;height:28px;background:var(--chip-bg);border-radius:6px}
+    .brand h1{font-size:16px;margin:0;color:var(--brand)}
+    .brand small{color:var(--ink-muted)}
+    .tabs a{margin:0 6px;text-decoration:none;color:var(--ink-soft);padding:6px 10px;border-radius:8px}
+    .tabs a.active{background:var(--brand-soft);color:var(--brand)}
+    .theme-toggle{border:1px solid var(--border);background:transparent;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+
+    main{max-width:1200px;margin:18px auto;padding:0 16px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px}
+    .panel h2{margin:0 0 12px 0;color:var(--brand);font-size:18px}
+    .section-title{margin-top:26px}
+    .site-footer{max-width:1200px;margin:0 auto 24px auto;color:var(--ink-muted);text-align:center;font-size:12px}
+
+    .filter-bar{display:flex;gap:16px;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap}
+    .filter-bar label{font-size:12px;color:var(--ink-soft)}
+    .filter-bar select,.filter-bar button{padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--ink)}
+    .filter-bar button.brand{background:var(--brand);color:#fff;border-color:var(--brand);cursor:pointer}
+    .filter-bar button:disabled{opacity:.6;cursor:not-allowed}
+    .check-row{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft)}
+
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;justify-content:center;min-height:96px}
+    .kpi h3{margin:0 0 6px 0;font-size:12px;color:var(--ink-soft);text-align:center}
+    .kpi .value{font-size:24px;font-weight:800;color:var(--brand);text-align:center}
+    .kpi .yoy{font-size:11px;margin-top:6px;font-weight:700;text-align:center}
+
+    .small-table{width:100%;border-collapse:collapse;font-size:12px}
+    .small-table th,.small-table td{padding:8px;border:1px solid var(--border)}
+    .small-table th{background:var(--thead);color:var(--ink-soft)}
+    .small-table tfoot td{font-weight:700;background:var(--brand-soft)}
+
+    .grid-2{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+    .hbar{display:grid;gap:8px}
+    .hbar-row{display:grid;grid-template-columns:140px 1fr 60px;align-items:center;gap:10px}
+    .hbar-track{background:var(--hbar-track);border-radius:6px;height:12px;overflow:hidden}
+    .hbar-fill{height:100%;background:var(--hbar-fill);border-radius:6px}
+    .hbar-label{font-size:11px;color:var(--ink-soft)}
+    .hbar-pct{font-size:11px;font-weight:800;text-align:right;color:var(--num)}
+    .muted{font-size:12px;color:var(--ink-soft)}
+    .num{color:var(--num);font-weight:800}
+
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin:10px 0 0 0;flex-wrap:wrap}
+    .toolbar button{border:1px solid var(--border);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+    .toolbar .primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+    .pagebreak{page-break-before:always;break-before:page}
+
+    /* Print/PDF: avoid splitting panels/tables */
+    @media print{
+      body{background:#fff !important;color:#000 !important}
+      .topbar,.filter-bar,.toolbar{display:none !important}
+      .panel, table, h2{break-inside:avoid}
+    }
+
+    @media (max-width:1000px){
+      .kpi-grid{grid-template-columns:repeat(2,1fr)}
+      .grid-2{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>PSC Dashboard</h1>
+      <small>Report</small>
+    </div>
+  </div>
+  <nav class="tabs">
+    <a href="index.html">Dashboard</a>
+    <a href="assets.html">Assets</a>
+    <a href="agents.html">Agents</a>
+    <a href="search.html">Search</a>
+    <a href="report.html" class="active">Report</a>
+    <a href="help.html">Help</a>
+  </nav>
+  <button class="theme-toggle" id="themeBtn" title="Toggle theme">🌙 Dark</button>
+</header>
+
+<main>
+  <!-- Controls -->
+  <section class="panel">
+    <h2>Report Builder</h2>
+    <div class="filter-bar">
+      <div>
+        <label>Entity</label><br/>
+        <select id="entityFilter">
+          <option value="">All</option>
+          <option value="FIR_RAM">FIR & RAM</option>
+          <option value="SAM">SAM</option>
+        </select>
+      </div>
+      <div>
+        <label>Year</label><br/>
+        <select id="yearSelect"></select>
+      </div>
+      <div>
+        <label>Month</label><br/>
+        <select id="monthSelect"></select>
+      </div>
+      <div>
+        <label>YTD Cutoff (for Section B)</label><br/>
+        <select id="ytdMonth"></select>
+      </div>
+      <div>
+        <label>Base Year (for Section B)</label><br/>
+        <select id="ytdBaseYear"></select>
+      </div>
+      <div style="flex:1"></div>
+      <button id="buildBtn" class="brand">Build Report</button>
+    </div>
+
+    <div class="check-row" style="margin-top:8px">
+      <label><input type="checkbox" id="secExec" checked/> Executive Summary (A • B • C)</label>
+      <label><input type="checkbox" id="secSales" checked/> Sales KPIs (monthly/yearly optional)</label>
+      <label><input type="checkbox" id="secYTD" checked/> YTD Performance (table)</label>
+      <label><input type="checkbox" id="secPub" checked/> Publication Summary</label>
+      <label><input type="checkbox" id="secRef" checked/> Referral Summary</label>
+      <label><input type="checkbox" id="secTop" checked/> Top Agents (Table)</label>
+    </div>
+
+    <!-- Toolbar: added threshold & Word memo button -->
+    <div class="toolbar">
+      <div style="display:flex;gap:10px;align-items:center;margin-right:auto;flex-wrap:wrap">
+        <label class="muted" for="thresholdSelect" style="font-size:12px">Appendix A Threshold</label>
+        <select id="thresholdSelect" title="Appendix A value threshold">
+          <option value="ABOVE_10M" selected>≥ RM10,000,000</option>
+          <option value="BELOW_10M">&lt; RM10,000,000</option>
+        </select>
+      </div>
+
+      <button id="previewBtn" title="Browser print (Save as PDF)">🖨️ Preview / Print</button>
+      <button id="pdfBtn" class="primary" title="Generate PDF file">⬇️ Download PDF</button>
+
+      <!-- Generate Word memo (client-side, no Power Automate) -->
+      <button id="memoWordBtn" class="primary" style="background:#16a34a;border-color:#16a34a" title="Generate Referral Fee memo in Word">
+        ⬇️ Referral Fee Memo (Word)
+      </button>
+    </div>
+  </section>
+
+  <!-- Printable report -->
+  <section id="reportDoc" class="panel">
+    <div id="reportContent">
+      <div style="text-align:center;padding:20px 10px 8px 10px">
+        <div style="font-size:22px;font-weight:900;color:var(--brand)">Performance Report</div>
+        <div class="muted" id="reportSubtitle">—</div>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--border);margin:10px 0 18px 0"/>
+      <div class="muted" id="reportMeta" style="text-align:center;margin-bottom:6px">—</div>
+      <div class="muted" style="text-align:center">Generated by Izazi</div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">Fully made by Izazi</footer>
+
+<!-- PDF library -->
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+
+<!-- HTML -> DOCX in the browser (opens best in Microsoft Word) -->
+<script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+<!-- Library info & altChunk note: html-docx-js converts HTML to DOCX; Word imports on open. Google Docs/LibreOffice may not render this content.  -->
+<!-- Sources: html-docx-js library & altChunk behavior. [1](blob:https://www.microsoft365.com/16fcd5e3-ba73-42b4-8bac-924cff222b83)[2](blob:https://www.microsoft365.com/b3da57c5-75df-4619-9a2f-977464ad1bff) -->
+
+<script>
+/* ============== THEME ============== */
+(function initTheme(){
+  const saved = localStorage.getItem("psc_theme") || "light";
+  if(saved === "dark") document.body.classList.add("dark");
+  const btn = document.getElementById("themeBtn");
+  const update = () => {
+    const dark = document.body.classList.contains("dark");
+    btn.textContent = dark ? "☀️ Light" : "🌙 Dark";
+    btn.title = dark ? "Switch to Light Mode" : "Switch to Dark Mode";
+  };
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("psc_theme", document.body.classList.contains("dark") ? "dark" : "light");
+    update();
+  });
+  update();
+})();
+
+/* ============== HELPERS ============== */
+const $ = id => document.getElementById(id);
+const assets = JSON.parse(localStorage.getItem("psc_assets") || "[]");
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function parseDate(s){
+  if(!s) return null;
+  const str = String(s).trim();
+  if(str.includes("/")){
+    const [d,m,y] = str.split("/");
+    const dt = new Date(+y, +m-1, +d);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  const dt = new Date(str);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+function yearOf(d){ const x = parseDate(d); return x ? x.getFullYear() : null; }
+function sumSale(list){ return list.reduce((t,a)=> t + (+a.SalePrice || 0), 0); }
+function sumEst(list){ return list.reduce((t,a)=> t + (+a.EstMarketPrice || 0), 0); }
+function money(n){ return "RM " + Number(n||0).toLocaleString("en-MY",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function mil(n){ return Number((n||0)/1e6); }
+function toMilStr(n){ return mil(n).toFixed(2); }     // RM 'Mil
+function toKStr(n){ return Number((n||0)/1e3).toFixed(2); }  // RM '000
+function daysSince(dateStr){
+  const d = parseDate(dateStr);
+  if(!d) return Infinity;
+  const ms = Date.now() - d.getTime();
+  return Math.floor(ms / (1000*60*60*24));
+}
+
+function normEntity(s){
+  const u = String(s||"").toUpperCase().replace(/\s+/g," ").trim();
+  if(u.includes("SAM")) return "SAM";
+  if(u.includes("FIR")) return "FIR";
+  if(u.includes("RAM")) return "RAM";
+  if(u.includes("BANK")) return "BANKING";
+  return u || "N/A";
+}
+function inEntityFilter(a, entSel){
+  if(!entSel) return true;
+  const e = normEntity(a.Entity);
+  if(entSel === "FIR_RAM") return e==="FIR" || e==="RAM";
+  if(entSel === "SAM")     return e==="SAM";
+  return true;
+}
+function isSold(a){ return String(a.Status||"").toUpperCase().trim() === "SOLD"; }
+function isPublished(a){ return String(a.Status||"").toUpperCase().trim() === "PUBLISHED"; }
+
+// Listing date resolver for Published assets (reorder to fit your data if needed)
+function listingDateOf(a){
+  return a.ListingDate || a.PublishedDate || a.DateListed || a.Published_On || a.Listed_On || a.CreatedDate || a.CreateDate || a.DateCreated;
+}
+function soldDateOf(a){ return a.SoldDate; }
+
+// Month equality test
+function monthMatch(dateLike, year, month2d){
+  const d = parseDate(dateLike);
+  if(!d) return false;
+  const y = +year, m = +month2d;
+  return (d.getFullYear() === y) && ((d.getMonth()+1) === m);
+}
+
+// Referral helpers (used elsewhere in the page)
+function isNoRefFeeStatus(s){ return String(s||"").toUpperCase().includes("NO REFERRAL FEE"); }
+function rateToPercent(raw){ const r = +raw || 0; return r <= 1 ? r*100 : r; } // 0.0125 -> 1.25%
+function eligibleReferral(a){
+  return isSold(a) && (+a.SalePrice||0) > 0 && rateToPercent(a.ReferralFeeRatePct) > 0 && !isNoRefFeeStatus(a.PaymentStatus);
+}
+function feeOf(a){
+  const explicit = +a.ReferralFeeAmount || 0;
+  if (explicit > 0) return explicit;
+  return (+a.SalePrice||0) * (rateToPercent(a.ReferralFeeRatePct)/100);
+}
+
+/* ============== INIT CONTROLS ============== */
+(function initControls(){
+  // Year list from both listing and sold dates, fallback to current
+  const yearsFromSold = assets.map(a => yearOf(soldDateOf(a))).filter(Boolean);
+  const yearsFromList = assets.map(a => yearOf(listingDateOf(a))).filter(Boolean);
+  const yearList = [...new Set([...yearsFromSold, ...yearsFromList])].sort((a,b)=> b-a);
+  const now = new Date();
+  const defaultYear = yearList[0] || now.getFullYear();
+
+  months.forEach((m,i)=>{ $("monthSelect").add(new Option(m, String(i+1).padStart(2,"0"))); });
+  $("monthSelect").value = String(now.getMonth()+1).padStart(2,"0");
+
+  (yearList.length ? yearList : [defaultYear]).forEach(y => $("yearSelect").add(new Option(y, y)));
+  $("yearSelect").value  = defaultYear;
+
+  months.forEach((m,i)=>{ $("ytdMonth").add(new Option(m, i+1)); });
+  $("ytdMonth").value = now.getMonth()+1;
+
+  (yearList.length ? yearList : [defaultYear]).forEach(y => $("ytdBaseYear").add(new Option(y, y)));
+  $("ytdBaseYear").value = defaultYear;
+})();
+
+/* ============== REPORT PARTS (unchanged logic) ============== */
+function reportSubtitle(entSel, y, m) {
+  const entLabel = entSel === "FIR_RAM" ? "FIR & RAM" : (entSel || "All Entities");
+  return `${entLabel} • ${months[(+m)-1]} ${y}`;
+}
+
+// A. Portfolio @ 1.25%
+function buildExec_A(entSel, yearVal, monthVal){
+  const RATE_125 = 0.0125;
+
+  const pubMonth = assets
+    .filter(isPublished)
+    .filter(a => inEntityFilter(a, entSel))
+    .filter(a => monthMatch(listingDateOf(a), +yearVal, +monthVal));
+
+  const soldMonth = assets
+    .filter(isSold)
+    .filter(a => inEntityFilter(a, entSel))
+    .filter(a => monthMatch(soldDateOf(a), +yearVal, +monthVal));
+
+  const pubCount = pubMonth.length;
+  const pubMV = sumEst(pubMonth);
+  const pubFeeMil = mil(pubMV * RATE_125);
+
+  const soldCount = soldMonth.length;
+  const soldVal = sumSale(soldMonth);
+  const soldFeeMil = mil(soldVal * RATE_125);
+
+  return `
+    <div style="margin-bottom:10px;font-weight:700;color:var(--num)">A. Portfolio @ 1.25%</div>
+    <table class="small-table" style="margin-bottom:14px">
+      <thead>
+        <tr>
+          <th style="width:42px">No.</th>
+          <th>Status</th>
+          <th style="width:130px">No. of Assets</th>
+          <th style="width:210px">Estimated Market Value (RM ‘Mil)</th>
+          <th style="width:210px">Referral Fee @ 1.25% (RM ‘Mil)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>(i)</td><td>Published Assets</td><td>${pubCount}</td><td>${toMilStr(pubMV)}</td><td>${pubFeeMil.toFixed(2)}</td></tr>
+        <tr><td>(ii)</td><td>Sold Assets</td><td>${soldCount}</td><td>${toMilStr(soldVal)}</td><td>${soldFeeMil.toFixed(2)}</td></tr>
+      </tbody>
+    </table>
+  `;
+}
+
+// B. Referral Collections (YTD)
+function buildExec_B_YTD(entSel, cutoffMonth, baseYear){
+  const PAID_EXACT = "BUYER AND REFERRAL FEE FULLY SETTLED";
+  const PENDING_SET = new Set([
+    "ASSETS SOLD BUT PENDING SETTLEMENT",
+    "BUYER FULLY SETTLED BUT PENDING REFERRAL FEE PAYMENT"
+  ]);
+
+  const ytdSold = assets
+    .filter(isSold)
+    .filter(a => inEntityFilter(a, entSel))
+    .filter(a => {
+      const d = parseDate(soldDateOf(a));
+      return d && d.getFullYear() === +baseYear && (d.getMonth() + 1) <= +cutoffMonth;
+    });
+
+  const referred = ytdSold.filter(eligibleReferral);
+
+  const paid = referred.filter(a => String(a.PaymentStatus||"").trim().toUpperCase() === PAID_EXACT);
+  const pending = referred.filter(a => PENDING_SET.has(String(a.PaymentStatus||"").trim().toUpperCase()));
+
+  const pendingUnder = pending.filter(a => daysSince(soldDateOf(a)) <  120);
+  const pendingOver  = pending.filter(a => daysSince(soldDateOf(a)) >= 120);
+
+  const paidCnt = paid.length;
+  const paidValMil = mil(sumSale(paid));
+  const paidFeeK = (paid.reduce((t,a)=> t + feeOf(a), 0) / 1e3);
+
+  const pendUnderCnt = pendingUnder.length;
+  const pendUnderValMil = mil(sumSale(pendingUnder));
+  const pendUnderFeeK = (pendingUnder.reduce((t,a)=> t + feeOf(a), 0) / 1e3);
+
+  const pendOverCnt = pendingOver.length;
+  const pendOverValMil = mil(sumSale(pendingOver));
+  const pendOverFeeK = (pendingOver.reduce((t,a)=> t + feeOf(a), 0) / 1e3);
+
+  const totalCnt = paidCnt + pendUnderCnt + pendOverCnt;
+  const totalSalesMil = +(paidValMil + pendUnderValMil + pendOverValMil).toFixed(2);
+  const totalFeeK = +(paidFeeK + pendUnderFeeK + pendOverFeeK).toFixed(2);
+
+  return `
+    <div style="margin-bottom:10px;font-weight:700;color:var(--num)">B. Referral Collections (YTD)</div>
+    <table class="small-table" style="margin-bottom:6px">
+      <thead>
+        <tr>
+          <th style="width:42px">No.</th>
+          <th>Status</th>
+          <th style="width:150px">No. of Transactions</th>
+          <th style="width:180px">Sale Value (RM ‘Mil)</th>
+          <th style="width:200px">Referral Fee (RM ‘000)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>(i)</td><td>Total Referral Fees Paid</td>
+            <td>${paidCnt}</td><td>${paidValMil.toFixed(2)}</td><td>${paidFeeK.toFixed(2)}</td></tr>
+        <tr><td>(ii)</td><td>Total Pending Full Settlement (&lt; 120 Days)</td>
+            <td>${pendUnderCnt}</td><td>${pendUnderValMil.toFixed(2)}</td><td>${pendUnderFeeK.toFixed(2)}</td></tr>
+        <tr><td>(iii)</td><td>Total Pending Full Settlement (&gt; 120 Days)</td>
+            <td>${pendOverCnt}</td><td>${pendOverValMil.toFixed(2)}</td><td>${pendOverFeeK.toFixed(2)}</td></tr>
+        <tr><td></td><td><strong>Total Successful</strong></td><td><strong>${totalCnt}</strong></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td><strong>Total Sales Value</strong></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td><strong>${totalSalesMil.toFixed(2)}</strong></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td><strong>Total Referral Fees</strong></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td><strong>${totalFeeK.toFixed(2)}</strong></td></tr>
+      </tbody>
+    </table>
+    <div class="muted">Scope: YTD up to ${months[+cutoffMonth-1]} ${baseYear}. “Pending” split uses 120 days from <em>SoldDate</em>.</div>
+  `;
+}
+
+// C. Scenario @ 1.63%
+function buildExec_C(entSel, yearVal, monthVal){
+  const RATE_163 = 0.0163;
+
+  const referredMonth = assets
+    .filter(isSold)
+    .filter(a => inEntityFilter(a, entSel))
+    .filter(a => monthMatch(soldDateOf(a), +yearVal, +monthVal))
+    .filter(eligibleReferral);
+
+  const cnt = referredMonth.length;
+  const salesMil = mil(sumSale(referredMonth));
+  const feeMil = mil(sumSale(referredMonth) * RATE_163);
+
+  return `
+    <div style="margin:14px 0 10px;font-weight:700;color:var(--num)">C. Scenario @ 1.63%</div>
+    <table class="small-table">
+      <thead>
+        <tr>
+          <th style="width:42px">No.</th>
+          <th>Status</th>
+          <th style="width:150px">No. of Transactions</th>
+          <th style="width:180px">Sale Value (RM ‘Mil)</th>
+          <th style="width:210px">Referral Fee @1.63% (RM ‘Mil)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>(i)</td><td>Total Referral Fees (Scenario)</td>
+          <td>${cnt}</td><td>${salesMil.toFixed(2)}</td><td>${feeMil.toFixed(2)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
+function buildExecutiveSummary(entSel, cutoffMonth, baseYear, yearVal, monthVal){
+  return `
+    <div class="panel">
+      <h2>Executive Summary</h2>
+      ${buildExec_A(entSel, yearVal, monthVal)}
+      ${buildExec_B_YTD(entSel, cutoffMonth, baseYear)}
+      ${buildExec_C(entSel, yearVal, monthVal)}
+    </div>
+  `;
+}
+
+/* -------- Sales KPIs (optional) -------- */
+function yoyText(curr, prev){
+  if(!prev) return "—";
+  const v = ((curr - prev) / prev) * 100;
+  return `${v>=0 ? "▲" : "▼"} ${Math.abs(v).toFixed(1)}%`;
+}
+function kpiSectionHTML(k){
+  return `
+    <div class="kpi-grid">
+      <div class="kpi"><h3>Assets Sold</h3><div class="value">${k.count.toLocaleString("en-MY")}</div></div>
+      <div class="kpi"><h3>Sold Value</h3><div class="value">${money(k.value)}</div></div>
+      <div class="kpi"><h3>Comparison (Count)</h3><div class="value">${k.diffCount}</div><div class="yoy">${k.yoyCount}</div></div>
+      <div class="kpi"><h3>Comparison (Value)</h3><div class="value">${k.diffValue}</div><div class="yoy">${k.yoyValue}</div></div>
+    </div>
+  `;
+}
+function buildSalesKPIs(entSel, yearVal, monthVal, mode){
+  const soldBase = assets.filter(isSold).filter(a => inEntityFilter(a, entSel));
+  let main = [], compare = [];
+  if (mode === "monthly"){
+    main = soldBase.filter(a => monthMatch(soldDateOf(a), +yearVal, +monthVal));
+    const prev = new Date(+yearVal, +monthVal-1, 1); prev.setMonth(prev.getMonth()-1);
+    compare = soldBase.filter(a => {
+      const d = parseDate(soldDateOf(a));
+      return d && d.getFullYear()===prev.getFullYear() && d.getMonth()===prev.getMonth();
+    });
+  } else if (mode === "yearly"){
+    main = soldBase.filter(a => yearOf(soldDateOf(a)) === +yearVal);
+    compare = soldBase.filter(a => yearOf(soldDateOf(a)) === (+yearVal - 1));
+  } else {
+    main = soldBase.filter(a => monthMatch(soldDateOf(a), +yearVal, +monthVal));
+    const prev = new Date(+yearVal, +monthVal-1, 1); prev.setMonth(prev.getMonth()-1);
+    compare = soldBase.filter(a => {
+      const d = parseDate(soldDateOf(a));
+      return d && d.getFullYear()===prev.getFullYear() && d.getMonth()===prev.getMonth();
+    });
+  }
+  const mainVal = sumSale(main), compVal = sumSale(compare);
+  return {
+    count: main.length,
+    value: mainVal,
+    diffCount: compare.length ? (main.length - compare.length) : "—",
+    diffValue: compare.length ? money(mainVal - compVal) : "—",
+    yoyCount: compare.length ? yoyText(main.length, compare.length) : "—",
+    yoyValue: compare.length ? yoyText(mainVal, compVal) : "—"
+  };
+}
+
+/* -------- YTD table (3-year window) -------- */
+function buildYTDRows(cutoffMonth, baseYear){
+  const yrs = [baseYear, baseYear-1, baseYear-2];
+  const rows = { RF:{}, SAM:{}, ALL:{} };
+  yrs.forEach(y=>{ rows.RF[y]={v:0,q:0}; rows.SAM[y]={v:0,q:0}; rows.ALL[y]={v:0,q:0}; });
+
+  assets.filter(isSold).forEach(a=>{
+    const d = parseDate(soldDateOf(a));
+    if(!d || !yrs.includes(d.getFullYear()) || (d.getMonth()+1) > +cutoffMonth) return;
+    const y = d.getFullYear();
+    const v = +a.SalePrice || 0;
+    const e = normEntity(a.Entity);
+    rows.ALL[y].v += v; rows.ALL[y].q++;
+    if(e === "SAM"){ rows.SAM[y].v += v; rows.SAM[y].q++; }
+    if(e === "RAM" || e === "FIR"){ rows.RF[y].v += v; rows.RF[y].q++; }
+  });
+  return { rows, yrs };
+}
+function ytdTableHTML(rows, yrs, cutoffMonth){
+  return `
+    <table class="small-table" style="font-size:13px">
+      <thead>
+        <tr>
+          <th>Entity</th>
+          ${yrs.map(y=>`<th colspan="2">YTD ${months[cutoffMonth-1]} ${y}</th>`).join("")}
+        </tr>
+        <tr><th></th>${yrs.map(()=>`<th>Value</th><th>Qty</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${["RF","SAM","ALL"].map(key=>{
+          const label = key==="RF" ? "FIR + RAM" : (key==="SAM" ? "SAM" : "OVERALL");
+          return `<tr>
+            <td>${label}</td>
+            ${yrs.map((y,i)=>{
+              const prev = yrs[i+1];
+              const v = rows[key][y].v, q = rows[key][y].q;
+              const yoyv = prev ? yoyText(v, rows[key][prev].v) : "—";
+              return `<td>${money(v)}<div class="muted" style="margin-top:4px">${yoyv}</div></td><td>${q}</td>`;
+            }).join("")}
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+/* -------- Publication Summary (optional) -------- */
+function normChannel(c){
+  c = String(c||"").toUpperCase();
+  if(c.includes("PUBLIC AUCTION")) return "PUBLIC AUCTION";
+  if(c.includes("PRIVATE")) return "PRIVATE TREATY";
+  if(c.includes("TENDER")) return "OPEN TENDER";
+  return c || "N/A";
+}
+function categoryGroup(raw){
+  const s = String(raw||"").toUpperCase().trim();
+  if (s === "AGRICULTURE" || s === "VACANT LAND") return "LAND";
+  if (s === "COMMERCIAL" || s === "INDUSTRIAL" || s === "LAND & BUILDING" || s === "LAND AND BUILDING") return "COMMERCIAL";
+  if (s === "HOSPITALITY") return "HOSPITALITY";
+  if (s === "RESIDENTIAL") return "RESIDENTIAL";
+  return "OTHERS";
+}
+function hbarHTML(mapC, mapV, title){
+  const totalC = Object.values(mapC).reduce((a,b)=>a+b,0) || 1;
+  const totalV = Object.values(mapV).reduce((a,b)=>a+b,0) || 1;
+  const entries = Object.keys(mapC).map(k => ({ k, c:mapC[k]||0, v:mapV[k]||0 }))
+    .sort((a,b)=> b.c - a.c || b.v - a.v || a.k.localeCompare(b.k));
+  return `
+    <div class="panel">
+      <h2>${title}</h2>
+      <div class="hbar">
+        ${entries.map(({k,c,v})=>{
+          const pc = Math.round(c/totalC*100);
+          const pv = Math.round(v/totalV*100);
+          return `
+            <div class="hbar-row">
+              <div class="hbar-label">${k}</div>
+              <div class="hbar-track"><div class="hbar-fill" style="width:${pc}%"></div></div>
+              <div class="hbar-pct">${pc}%</div>
+              <div class="muted" style="grid-column:1/-1;margin-left:150px">Qty: <span class="num">${c}</span> (${pc}%) • Value: <span class="num">${money(v)}</span> (${pv}%)</div>
+            </div>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+function buildPublicationSummary(entSel){
+  const published = assets.filter(isPublished).filter(a => inEntityFilter(a, entSel));
+  const byCh = { "PUBLIC AUCTION":{q:0,v:0}, "PRIVATE TREATY":{q:0,v:0}, "OPEN TENDER":{q:0,v:0} };
+  published.forEach(a=>{
+    const c = normChannel(a.Channel);
+    if(!byCh[c]) byCh[c]={q:0,v:0};
+    byCh[c].q++; byCh[c].v += (+a.EstMarketPrice||0);
+  });
+
+  const tenureC={}, tenureV={}, stateC={}, stateV={}, catC={}, catV={};
+  published.forEach(a=>{
+    const v = +a.EstMarketPrice || 0;
+    const t = a.Tenure || "N/A"; tenureC[t]=(tenureC[t]||0)+1; tenureV[t]=(tenureV[t]||0)+v;
+    const g = categoryGroup(a.Category); catC[g]=(catC[g]||0)+1; catV[g]=(catV[g]||0)+v;
+    const s = a.State || "N/A"; stateC[s]=(stateC[s]||0)+1; stateV[s]=(stateV[s]||0)+v;
+  });
+
+  return {
+    totalQ: published.length,
+    totalV: sumEst(published),
+    channels: byCh,
+    tenure: {c:tenureC, v:tenureV},
+    category: {c:catC, v:catV},
+    state: {c:stateC, v:stateV}
+  };
+}
+
+/* -------- Referral Summary + Top agents (optional) -------- */
+function buildReferralSummary(year, entSel, cutoffMonth){
+  const entSet = entSel ? new Set(entSel.split(",").map(x=>x.trim().toUpperCase())) : null;
+  const sold = assets.filter(isSold).filter(a=>{
+    const d = parseDate(soldDateOf(a)); if(!d) return false;
+    return d.getFullYear()===+year && (d.getMonth()+1)<=+cutoffMonth;
+  }).filter(a=>{
+    if(!entSet) return true;
+    return entSet.has(normEntity(a.Entity));
+  });
+
+  const referred = sold.filter(eligibleReferral);
+  const totalFee = referred.reduce((t,a)=> t + feeOf(a), 0);
+  const avgPct = referred.length ? (referred.reduce((t,a)=> t + rateToPercent(a.ReferralFeeRatePct), 0) / referred.length) : 0;
+
+  // Top agents (qty)
+  const map = {};
+  referred.forEach(a=>{
+    const k = a.SuccessfulAgent || "N/A";
+    const v = +a.SalePrice || 0;
+    if(!map[k]) map[k] = {qty:0, val:0};
+    map[k].qty += 1; map[k].val += v;
+  });
+  const top = Object.entries(map).map(([agent,o])=>({agent, qty:o.qty, val:o.val}))
+               .sort((a,b)=> b.qty - a.qty || b.val - a.val || a.agent.localeCompare(b.agent))
+               .slice(0,5);
+
+  // Payment status distribution
+  const psCount = {};
+  referred.forEach(a=>{
+    const s = String(a.PaymentStatus||"").trim().toUpperCase();
+    psCount[s] = (psCount[s]||0)+1;
+  });
+
+  return {
+    soldCount: sold.length,
+    referredCount: referred.length,
+    totalFee, avgPct,
+    topAgents: top,
+    paymentStatus: psCount
+  };
+}
+function topAgentsTableHTML(rows){
+  return `
+    <div class="panel">
+      <h2>Top Agents by Most Assets Sold</h2>
+      <table class="small-table">
+        <thead><tr><th>Agent</th><th>Qty</th><th style="text-align:right">Total Value</th></tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(r => `
+            <tr>
+              <td>${r.agent}</td>
+              <td>${r.qty}</td>
+              <td style="text-align:right">${money(r.val)}</td>
+            </tr>`).join("") : `<tr><td colspan="3">No agents found.</td></tr>`
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* -------- BUILD REPORT -------- */
+function buildReport(){
+  const entSel = $("entityFilter").value;
+  const yearVal = $("yearSelect").value;
+  const monthVal = $("monthSelect").value;
+  const ytdM = +$("ytdMonth").value;
+  const baseY = +$("ytdBaseYear").value;
+
+  $("reportSubtitle").textContent = reportSubtitle(entSel, yearVal, monthVal);
+  const now = new Date();
+  $("reportMeta").textContent = `Built on ${now.toLocaleDateString('en-MY', { day:'2-digit', month:'short', year:'numeric' })}`;
+
+  const include = {
+    exec: $("secExec").checked,
+    sales: $("secSales").checked,
+    ytd: $("secYTD").checked,
+    pub: $("secPub").checked,
+    ref: $("secRef").checked,
+    top: $("secTop").checked
+  };
+
+  const parts = [];
+
+  if (include.exec){
+    parts.push(buildExecutiveSummary(entSel, ytdM, baseY, yearVal, monthVal));
+  }
+
+  if (include.sales){
+    const k = buildSalesKPIs(entSel, yearVal, monthVal, "monthly");
+    parts.push(`<div class="panel ${include.exec ? 'pagebreak':''}">
+      <h2>Sales KPIs</h2>
+      ${kpiSectionHTML(k)}
+    </div>`);
+  }
+
+  if (include.ytd){
+    const { rows, yrs } = buildYTDRows(ytdM, baseY);
+    parts.push(`<div class="panel ${include.sales ? 'pagebreak':''}">
+      <h2>YTD Sales Performance</h2>
+      ${ytdTableHTML(rows, yrs, ytdM)}
+      <div class="muted" style="margin-top:8px">YTD cutoff: ${months[ytdM-1]} • Base year: ${baseY}</div>
+    </div>`);
+  }
+
+  if (include.pub){
+    const pub = buildPublicationSummary(entSel);
+    const ch = pub.channels;
+    parts.push(`<div class="panel ${include.ytd ? 'pagebreak':''}">
+      <h2>Publication Summary</h2>
+      <div class="kpi-grid" style="margin-bottom:10px">
+        <div class="kpi"><h3>Total Published</h3><div class="value">${pub.totalQ.toLocaleString('en-MY')}</div></div>
+        <div class="kpi"><h3>Total Est Value</h3><div class="value">${money(pub.totalV)}</div></div>
+        <div class="kpi"><h3>Public Auction</h3><div class="value">${ch["PUBLIC AUCTION"]?.q || 0} • ${money(ch["PUBLIC AUCTION"]?.v||0)}</div></div>
+        <div class="kpi"><h3>Private Treaty / Tender</h3><div class="value">${(ch["PRIVATE TREATY"]?.q||0)+(ch["OPEN TENDER"]?.q||0)} • ${money((ch["PRIVATE TREATY"]?.v||0)+(ch["OPEN TENDER"]?.v||0))}</div></div>
+      </div>
+    </div>`);
+  }
+
+  if (include.ref){
+    const ref = buildReferralSummary(baseY, $("entityFilter").value === "FIR_RAM" ? "FIR,RAM" : $("entityFilter").value, ytdM);
+    const ps = ref.paymentStatus;
+    const tot = Object.values(ps).reduce((a,b)=>a+b,0)||1;
+    const psHTML = Object.keys(ps).sort().map(k=>{
+      const pct = Math.round(ps[k]/tot*100);
+      return `<div class="hbar-row">
+        <div class="hbar-label">${k}</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${pct}%"></div></div>
+        <div class="hbar-pct">${pct}%</div>
+      </div>`;
+    }).join("");
+    parts.push(`<div class="panel ${include.pub ? 'pagebreak':''}">
+      <h2>Referral Summary (YTD)</h2>
+      <div class="kpi-grid" style="margin-bottom:10px">
+        <div class="kpi"><h3>Referred Assets</h3><div class="value">${ref.referredCount}</div></div>
+        <div class="kpi"><h3>Total Referral Fees</h3><div class="value">${money(ref.totalFee)}</div></div>
+        <div class="kpi"><h3>Avg Referral %</h3><div class="value">${(Number(ref.avgPct)||0).toFixed(2)}%</div></div>
+        <div class="kpi"><h3>Share of Sold</h3><div class="value">${Math.round(ref.referredCount/Math.max(ref.soldCount,1)*100)}%</div></div>
+      </div>
+      <div class="panel" style="padding:12px;margin:8px 0">
+        <h2 style="font-size:14px;margin-bottom:8px">Payment Status Distribution</h2>
+        <div class="hbar">${psHTML || '<div class="muted">No referred assets.</div>'}</div>
+      </div>
+    </div>`);
+  }
+
+  if (include.top){
+    const ref = buildReferralSummary(baseY, $("entityFilter").value === "FIR_RAM" ? "FIR,RAM" : $("entityFilter").value, ytdM);
+    parts.push(`<div class="${include.ref ? 'pagebreak':''}">
+      ${topAgentsTableHTML(ref.topAgents)}
+    </div>`);
+  }
+
+  $("reportContent").innerHTML = `
+    <div style="text-align:center;padding:20px 10px 8px 10px">
+      <div style="font-size:22px;font-weight:900;color:var(--brand)">Performance Report</div>
+      <div class="muted">${reportSubtitle($("entityFilter").value, yearVal, monthVal)}</div>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--border);margin:10px 0 18px 0"/>
+    ${parts.join("") || '<div class="muted">No sections selected.</div>'}
+  `;
+}
+
+/* -------- PDF / PRINT -------- */
+function downloadPDF(){
+  const node = $("reportDoc");
+  const stamp = new Date().toISOString().slice(0,10);
+  const entSel = $("entityFilter").value || "ALL";
+  const y = $("yearSelect").value || new Date().getFullYear();
+  const m = $("monthSelect").value || String(new Date().getMonth()+1).padStart(2,"0");
+  const opt = {
+    margin:       8,
+    filename:     `PSC_Report_${entSel}_${y}-${m}_${stamp}.pdf`,
+    image:        { type: 'jpeg', quality: 0.96 },
+    pagebreak:    { mode: ['css'], avoid: ['.panel','tr','img'] },
+    html2canvas:  { scale: 2, useCORS: true, windowWidth: document.body.scrollWidth },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  if (typeof html2pdf === "undefined"){
+    alert("PDF library not loaded. Use Preview/Print or include html2pdf.bundle.min.js.");
+    return;
+  }
+  html2pdf().set(opt).from(node).save();
+}
+
+/* ===================== REFERRAL FEE MEMO (WORD) ===================== */
+/* Client-side .docx generation using html-docx-js. Best opened in Microsoft Word.  */
+/* Library reference & behavior: html-docx-js uses Word's import of embedded HTML (altChunk). [1](blob:https://www.microsoft365.com/16fcd5e3-ba73-42b4-8bac-924cff222b83)[2](blob:https://www.microsoft365.com/b3da57c5-75df-4619-9a2f-977464ad1bff) */
+
+const MEMO = {
+  TO_NAME: "SAMAD MAJID ZAIN ABDUL MAJID",
+  TO_TITLE: "RELIEF PRESIDENT / CHIEF EXECUTIVE OFFICER",
+  THROUGH_NAME: "PN ZALINA OSMAN",
+  THROUGH_TITLE: "HEAD, RECOVERY & ASSET MANAGEMENT",
+  FROM_NAME: "NURUL HAMIZAH SAWALUDIN",
+  FROM_TITLE: "HEAD, BUSINESS INNOVATION",
+  SUBJECT: "APPROVAL FOR REFERRAL FEE RATE FOR PUBLISHED ASSETS IN ASSETSLINK",
+  PREPARED_BY_NAME: "Izazi Afifah Binti Ismail",
+  PREPARED_BY_TITLE: "Executive, Project Development",
+  APPROVER_TITLE: "Acting President / Chief Executive Officer"
+};
+
+function htmlEscape(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function pickAppendixRowsPublished(year, month2d, entSel, thresholdMode){
+  const passEntity = a => inEntityFilter(a, entSel);
+  const byMonth = a => monthMatch(listingDateOf(a), +year, +month2d);
+
+  return assets
+    .filter(isPublished)
+    .filter(passEntity)
+    .filter(byMonth)
+    .filter(a => {
+      const v = +a.EstMarketPrice || 0;
+      return thresholdMode === "ABOVE_10M" ? v >= 10000000 : v < 10000000;
+    })
+    .map(a => ({
+      company: a.CustomerName || a.AssetName || "—",
+      mode: a.Channel || "—",
+      description: (a.Category ? String(a.Category).toUpperCase() : "—"),
+      location: a.PropertyAddress || a.Location || "—",
+      state: a.State || "—",
+      sector: a.Category || "—",
+      reserve: +a.EstMarketPrice || 0
+    }));
+}
+
+function buildReferralFeeMemoHTML(yyyy, mm2, entSel, thresholdMode){
+  const today = new Date();
+  const docDate = today.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});
+  const monthLabel = new Date(`${yyyy}-${mm2}-01`).toLocaleDateString('en-MY',{month:'long', year:'numeric'});
+  const appendix = pickAppendixRowsPublished(+yyyy, +mm2, entSel, thresholdMode);
+  const thresholdLabel = thresholdMode === "ABOVE_10M" ? "≥ RM10,000,000" : "< RM10,000,000";
+
+  const appRows = appendix.length
+    ? appendix.map((r,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${htmlEscape(r.company)}</td>
+        <td>${htmlEscape(r.mode)}</td>
+        <td>${htmlEscape(r.description)}</td>
+        <td>${htmlEscape(r.location)}</td>
+        <td>${htmlEscape(r.state)}</td>
+        <td>${htmlEscape(r.sector)}</td>
+        <td style="text-align:right">${money(r.reserve)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="8" style="text-align:center;color:#6b7280">No published assets found for ${monthLabel} (${thresholdLabel}).</td></tr>`;
+
+  const css = `
+    body { font-family: Calibri, Arial, sans-serif; font-size:11pt; color:#111; }
+    h1,h2,h3 { color:#111; margin:0 0 6pt 0 }
+    table { width:100%; border-collapse:collapse; }
+    th,td { border:1px solid #d1d5db; padding:6pt 6pt; vertical-align:top; }
+    th { background:#f3f4f6; color:#374151; }
+    .meta { width:100%; border:1px solid #d1d5db; border-collapse:collapse; margin:6pt 0 10pt 0 }
+    .meta td { border:1px solid #d1d5db; padding:6pt }
+    .meta td.label { width:90pt; font-weight:bold; }
+    .muted { color:#6b7280 }
+  `;
+
+  const html = `
+  <!doctype html>
+  <html><head><meta charset="utf-8"><style>${css}</style></head><body>
+
+  <h2 style="text-align:center">SMALL MEDIUM ENTERPRISE DEVELOPMENT BANK MALAYSIA BERHAD</h2>
+  <h3 style="text-align:center;text-decoration:underline">MEMORANDUM</h3>
+
+  <table class="meta">
+    <tr><td class="label">TO</td><td>${htmlEscape(MEMO.TO_NAME)}<br><span class="muted">${htmlEscape(MEMO.TO_TITLE)}</span></td></tr>
+    <tr><td class="label">THROUGH</td><td>${htmlEscape(MEMO.THROUGH_NAME)}<br><span class="muted">${htmlEscape(MEMO.THROUGH_TITLE)}</span></td></tr>
+    <tr><td class="label">FROM</td><td>${htmlEscape(MEMO.FROM_NAME)}<br><span class="muted">${htmlEscape(MEMO.FROM_TITLE)}</span></td></tr>
+    <tr><td class="label">DATE</td><td>${htmlEscape(docDate)}</td></tr>
+    <tr><td class="label">SUBJECT</td><td>${htmlEscape(MEMO.SUBJECT)}</td></tr>
+  </table>
+
+  <h3>PURPOSE / REQUEST</h3>
+  <ul>
+    <li>To seek approval for referral fee rates <strong>greater than 1.25% and up to 3.00%</strong> for selected <strong>Published</strong> assets in ${htmlEscape(monthLabel)}.</li>
+    <li>Higher rate aligns with BoD/EXCO approvals and supports disposal of long-marketed assets.</li>
+  </ul>
+
+  <h3>BACKGROUND</h3>
+  <p>Recap of <strong>SAM BoD (12/2020)</strong> and <strong>EXCO (22/2020)</strong> approvals for the Referral Scheme and operational authority limits (up to <strong>3%</strong> for property and <strong>5%</strong> for machinery/moveables).</p>
+
+  <h3>JUSTIFICATION(S)</h3>
+  <ol>
+    <li><strong>Alignment with Board Approval</strong> — Scheme allows higher incentives for long-marketed assets.</li>
+    <li><strong>Extended Marketing Duration</strong> — Assets have been on market without disposal.</li>
+    <li><strong>Market Competitiveness</strong> — 1.5%–3.0% is common for hard-to-sell assets.</li>
+    <li><strong>Commitment to Agents</strong> — Honors communicated entitlement up to 3%.</li>
+    <li><strong>Strategic Objective</strong> — Expedite disposal, optimize recovery, improve portfolio quality.</li>
+  </ol>
+
+  <h3>AUTHORITY LIMIT / POLICY / PROCEDURE</h3>
+  <p>Rates guided by the Referral Scheme; operational authority delegated per EXCO (22/2020).</p>
+
+  <h3>DECISION SOUGHT</h3>
+  <p>Approval for the referral fee rates as outlined above for the listed assets.</p>
+
+  <h3 style="margin-top:14pt">APPENDIX A: PUBLISHED ASSETS (${htmlEscape(thresholdLabel)}) — ${htmlEscape(monthLabel)}</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28pt">#</th>
+        <th>Company / Asset</th>
+        <th>Mode</th>
+        <th>Description</th>
+        <th>Location</th>
+        <th>State</th>
+        <th>Sector</th>
+        <th style="width:120pt;text-align:right">Est / Reserve Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${appRows}
+    </tbody>
+  </table>
+
+  <table class="meta" style="margin-top:14pt">
+    <tr><td><strong>PREPARED BY</strong><br>${htmlEscape(MEMO.PREPARED_BY_NAME)}<br><span class="muted">${htmlEscape(MEMO.PREPARED_BY_TITLE)}</span><br><span class="muted">Date: ${htmlEscape(docDate)}</span></td></tr>
+  </table>
+
+  </body></html>
+  `;
+  return html;
+}
+
+async function generateReferralFeeMemoDocx() {
+  const y = $("yearSelect")?.value || new Date().getFullYear();
+  const m2 = $("monthSelect")?.value || String(new Date().getMonth()+1).padStart(2,"0");
+  const entSel = $("entityFilter")?.value || "";
+  const thresholdMode = $("thresholdSelect")?.value || "ABOVE_10M";
+
+  const html = buildReferralFeeMemoHTML(y, m2, entSel, thresholdMode);
+  const blob = window.htmlDocx.asBlob(html); // Provided by html-docx-js. [1](blob:https://www.microsoft365.com/16fcd5e3-ba73-42b4-8bac-924cff222b83)
+  const suffix = thresholdMode === "ABOVE_10M" ? "GE10M" : "LT10M";
+  const fileName = `Referral_Fee_Memo_${y}-${m2}_${suffix}.docx`;
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  a.remove();
+}
+
+/* -------- WIRE UI -------- */
+$("buildBtn").addEventListener("click", buildReport);
+$("pdfBtn").addEventListener("click", downloadPDF);
+$("previewBtn").addEventListener("click", ()=>window.print());
+$("memoWordBtn").addEventListener("click", generateReferralFeeMemoDocx);
+
+// Initial render
+buildReport();
+</script>
+</body>
+</html>

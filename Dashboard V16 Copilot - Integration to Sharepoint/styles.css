@@ -1,0 +1,245 @@
+@font-face { 
+  font-family: InterVar; 
+  src: local('Inter'), local('Inter Regular'); 
+}
+
+:root{
+  --bg:linear-gradient(180deg,#f6f7fb 0%, #ffffff 35%);
+  --panel:#ffffff;
+  --panel-soft:#f8f9fd;
+  --panel-contrast:#eef0ff;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --accent:#6a46ff;
+  --accent-2:#9b78ff;
+  --accent-soft:#f0edff;
+  --line:#e6e7f2;
+  --table-head:#f2f3ff;
+  --table-row:#fafbff;
+}
+
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.6 InterVar,system-ui,Segoe UI,Arial
+}
+
+/* ================= HEADER ================= */
+
+header.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 22px;
+  background:rgba(255,255,255,.9);
+  backdrop-filter: blur(6px);
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:10
+}
+
+.brand{
+  display:flex;
+  gap:12px;
+  align-items:center
+}
+
+.logo{ height:38px }
+
+.brand h1{
+  margin:0;
+  font-size:17px;
+  font-weight:600
+}
+
+.brand small{
+  font-size:11px;
+  color:var(--muted)
+}
+
+/* ================= NAV ================= */
+
+.tabs{
+  display:flex;
+  gap:6px
+}
+
+.tabs a{
+  color:var(--muted);
+  text-decoration:none;
+  padding:7px 14px;
+  border-radius:12px;
+  font-weight:500
+}
+
+.tabs a.active{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#fff
+}
+
+/* ================= TOOLBAR ================= */
+
+.toolbar{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  padding:16px 22px;
+  background:var(--panel-soft);
+  border-bottom:1px solid var(--line)
+}
+
+.filters{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap
+}
+
+.filters label{
+  font-size:12px;
+  color:var(--muted);
+  display:block
+}
+
+.filters input,
+.filters select{
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--text)
+}
+
+/* ================= BUTTON ================= */
+
+button{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:white;
+  border:0;
+  border-radius:12px;
+  padding:9px 14px;
+  cursor:pointer
+}
+
+button.ghost{
+  background:#fff;
+  border:1px solid var(--line);
+  color:var(--muted)
+}
+
+/* ================= MAIN ================= */
+
+main{
+  padding:22px;
+  display:grid;
+  gap:22px
+}
+
+.panel{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px
+}
+
+.panel h2{
+  margin:0 0 16px 0;
+  font-size:15px;
+  font-weight:600
+}
+
+/* ================= KPI CARDS ================= */
+
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px
+}
+
+.kpi{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px
+}
+
+.kpi .label{
+  font-size:12px;
+  color:var(--muted)
+}
+
+.kpi .value{
+  font-size:24px;
+  font-weight:700;
+  color:#7030A0;
+  cursor:pointer
+}
+
+/* ================= BAR CHART ================= */
+
+.bar-row{
+  margin-bottom:14px
+}
+
+.bar-label{
+  font-weight:600;
+  font-size:12px;
+  margin-bottom:6px
+}
+
+.bar-wrap{
+  display:flex;
+  gap:8px
+}
+
+.bar-box{
+  flex:1;
+  background:#f3effa;
+  border-radius:6px;
+  overflow:hidden;
+  height:22px
+}
+
+.bar{
+  height:100%;
+  background:#7030A0;
+  color:#fff;
+  font-size:11px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  padding-left:6px
+}
+
+.bar.prev{
+  background:#c9b6e4;
+  color:#3d2a5a
+}
+
+/* ================= DISABLED FORM CONTROLS ================= */
+/* THIS IS THE IMPORTANT FIX */
+
+select:disabled,
+input:disabled{
+  background-color:#f2f2f2 !important;
+  color:#999 !important;
+  border-color:#ddd !important;
+  cursor:not-allowed;
+  opacity:1; /* prevent browser dimming inconsistencies */
+}
+
+/* ================= FOOTER ================= */
+
+.site-footer{
+  margin:28px 22px;
+  border-top:1px dashed var(--line);
+  padding-top:14px;
+  color:var(--muted);
+  font-size:12px;
+  display:flex;
+  justify-content:space-between
+}

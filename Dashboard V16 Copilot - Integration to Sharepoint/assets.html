@@ -1,0 +1,920 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>PSC Dashboard – Assets</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root{
+      --bg:#faf9ff; --panel:#ffffff; --border:#e4dcff; --ink:#2f2a44;
+      --ink-soft:#6b5f87; --ink-muted:#8c7ba8; --brand:#7030A0; --brand-soft:#efeaff;
+      --thead:#faf7ff; --chip-bg:#f4f3ff; --link:#6a46ff; --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    body.dark{
+      --bg:#0f1020; --panel:#16172a; --border:#2a2c45; --ink:#e8e6ff;
+      --ink-soft:#c9c4ea; --ink-muted:#a59fcc; --brand:#a78bfa; --brand-soft:#262348;
+      --thead:#1b1c33; --chip-bg:#1e1f39; --link:#bda7ff; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    html,body{height:100%}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;color:var(--ink);background:var(--bg);margin:0}
+    .topbar{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand .logo{width:28px;height:28px;object-fit:contain;background:var(--chip-bg);border-radius:6px}
+    .brand h1{font-size:16px;margin:0;color:var(--brand)}
+    .brand small{color:var(--ink-muted)}
+    .tabs a{margin:0 6px;text-decoration:none;color:var(--ink-soft);padding:6px 10px;border-radius:8px}
+    .tabs a.active{background:var(--brand-soft);color:var(--brand)}
+    .theme-toggle{border:1px solid var(--border);background:transparent;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+
+    main{max-width:1200px;margin:18px auto;padding:0 16px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px;box-shadow:var(--shadow)}
+    h2{margin:0 0 12px 0;color:var(--brand);font-size:18px}
+    .site-footer{max-width:1200px;margin:0 auto 24px auto;color:var(--ink-muted);text-align:center;font-size:12px}
+
+    /* Toolbar */
+    .toolbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .filters label{font-size:12px;color:var(--ink-soft);display:block;margin-bottom:4px}
+    .filters input,.filters select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px}
+    .btn{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);cursor:pointer;font-size:13px}
+    .btn.ghost{background:transparent}
+    .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+    .sort-buttons .sortBtn.active{ border-color: var(--brand); color: var(--brand); }
+
+    /* Table */
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}
+    table{width:100%;table-layout:auto;border-collapse:collapse}
+    th,td{font-size:12px;padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+    thead th{background:var(--thead);color:var(--ink-soft);position:sticky;top:0}
+    .center{text-align:center}
+    .right{text-align:right}
+    .link{color:var(--link);cursor:pointer;text-decoration:underline}
+    .multiline{white-space:normal; word-break:normal; overflow-wrap:anywhere;}
+    .pill{display:inline-block;background:var(--chip-bg);padding:2px 8px;border-radius:999px;font-size:11px;margin-left:8px}
+
+    /* Column sizing */
+    th.col-customer, td.col-customer { width: 28ch; }
+    th.col-agent, td.col-agent { width: 20ch; }
+    th.col-buyer, td.col-buyer { width: 20ch; }
+
+    /* Address toggle */
+    .col-address { display:none; }
+    .table-wrap.show-address .col-address { display:table-cell; }
+    th.col-address, td.col-address { width:420px; }
+
+    /* Modal (scrollable 1-col) */
+    .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);align-items:center;justify-content:center;z-index:9999}
+    .modal{
+      width:min(720px,92vw);
+      max-height:86vh;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:0;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+      display:flex;flex-direction:column;
+    }
+    .modal-header{padding:16px 16px 8px 16px}
+    .modal-header h3{margin:0;color:var(--ink-soft);font-size:14px}
+    .modal-body{padding:0 16px 12px 16px;overflow:auto;min-height:0}
+    .form-col{display:flex;flex-direction:column;gap:10px}
+    .form-row label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+    .form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px}
+    .modal-actions{position:sticky;bottom:0;padding:12px 16px;display:flex;justify-content:flex-end;gap:10px;background:var(--panel);border-top:1px solid var(--border)}
+  </style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.png" class="logo" alt="logo"/>
+    <div>
+      <h1>PSC Dashboard</h1>
+      <small>Assets</small>
+    </div>
+  </div>
+  <nav class="tabs">
+    <a href="index.html">Dashboard</a>
+    <a href="assets.html" class="active">Assets</a>
+    <a href="agents.html">Agents</a>
+    <a href="search.html">Search</a>
+    <a href="report.html">Report</a>
+    <a href="help.html">Help</a>
+  </nav>
+  <button class="theme-toggle" id="themeBtn" title="Toggle theme">🌙 Dark</button>
+</header>
+
+<main>
+<section class="panel">
+  <h2>Assets Directory <span id="viewPill" class="pill" style="display:none">Publication View</span></h2>
+  <p id="filterInfo" style="font-size:12px;color:var(--ink-muted)"></p>
+
+  <div class="toolbar">
+    <div class="filters">
+      <div>
+        <label>Search</label>
+        <input id="q" type="text" placeholder="Asset ID, Customer, Agent, Buyer, Address…">
+      </div>
+      <div>
+        <label>Sort</label>
+        <select id="sortBy">
+          <option value="id">Asset ID (A–Z)</option>
+          <option value="price_desc">Price (High→Low)</option>
+          <option value="price_asc">Price (Low→High)</option>
+          <option value="sold_desc">Sold Date (Newest)</option>
+          <option value="sold_asc">Sold Date (Oldest)</option>
+          <option value="auction_desc">Auction Date (Newest)</option>
+          <option value="auction_asc">Auction Date (Oldest)</option>
+          <option value="list_desc">Listing Date (Newest)</option>
+          <option value="list_asc">Listing Date (Oldest)</option>
+        </select>
+      </div>
+      <div>
+        <label>Quick Sort</label>
+        <div class="sort-buttons">
+          <button class="btn ghost sortBtn" data-key="price">Price</button>
+          <button class="btn ghost sortBtn" data-key="sold">Sold</button>
+          <button class="btn ghost sortBtn" data-key="auction">Auction</button>
+          <button class="btn ghost sortBtn" data-key="list">Listing</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn ghost" onclick="document.getElementById('assetCsv').click()">📥 Import CSV</button>
+      <input type="file" id="assetCsv" accept=".csv,text/csv" hidden>
+      <button class="btn ghost" id="btnExport">📤 Export CSV</button>
+      <button class="btn ghost" id="btnToggleAddress" title="Show/Hide Address">👁️ Show Address</button>
+      <button class="btn ghost" id="btnClearFilters" style="display:none">✖ Clear Filters</button>
+      <button class="btn primary" id="btnAdd">➕ Add Asset</button>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="tblWrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="center" style="width:100px">Asset ID</th>
+          <th class="center" style="width:90px">Entity</th>
+          <th class="col-customer">Customer Name</th>
+          <th class="center" style="width:90px">Status</th>
+          <th class="center" style="width:120px">Listing Date</th>
+          <th class="center" style="width:120px">Sold Date</th>
+          <th class="center" style="width:120px">Auction Date</th>
+          <th class="center" style="width:120px">Channel</th>
+          <th class="right"  style="width:140px">Price</th>
+          <th class="center" style="width:110px">Category</th>
+          <th class="col-agent">Successful Agent</th>
+          <th class="col-buyer">Buyer Name</th>
+          <th class="multiline col-address">Address</th>
+          <th class="center" style="width:160px">Action</th>
+        </tr>
+      </thead>
+      <tbody id="assetTableBody">
+        <tr><td class="center" colspan="14">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">Fully made by Izazi</footer>
+
+<!-- ===== Modal: Add/Edit Asset (Scrollable Single Column) ===== -->
+<div id="dlg" class="backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="modal-header">
+      <h3 id="dlgTitle">Add Asset</h3>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-col">
+        <!-- Core -->
+        <div class="form-row">
+          <label>Asset ID *</label>
+          <input id="fAssetID" placeholder="e.g., A-001">
+        </div>
+        <div class="form-row">
+          <label>Entity</label>
+          <input id="fEntity" placeholder="SAM / FIR / RAM / BANKING">
+        </div>
+        <div class="form-row">
+          <label>Customer Name</label>
+          <textarea id="fCustomerName" rows="2" placeholder=""></textarea>
+        </div>
+        <div class="form-row">
+          <label>Status</label>
+          <input id="fStatus" placeholder="LISTED / SOLD / PUBLISHED …">
+        </div>
+
+        <!-- Dates & Channel -->
+        <div class="form-row">
+          <label>Listing Date</label>
+          <input id="fListingDate" placeholder="DD/MM/YYYY or YYYY-MM-DD">
+        </div>
+        <div class="form-row">
+          <label>Sold Date</label>
+          <input id="fSoldDate" placeholder="DD/MM/YYYY or YYYY-MM-DD">
+        </div>
+        <div class="form-row">
+          <label>Auction Date</label>
+          <input id="fAuctionDate" placeholder="DD/MM/YYYY or YYYY-MM-DD">
+        </div>
+        <div class="form-row">
+          <label>Channel</label>
+          <input id="fChannel" placeholder="PUBLIC AUCTION / PRIVATE TREATY / OPEN TENDER">
+        </div>
+
+        <!-- Prices -->
+        <div class="form-row">
+          <label>Sale Price (RM)</label>
+          <input id="fSalePrice" placeholder="0.00">
+        </div>
+        <div class="form-row">
+          <label>Reserve Price (RM)</label>
+          <input id="fReservePrice" placeholder="0.00">
+        </div>
+        <div class="form-row">
+          <label>Estimated Market Price (RM)</label>
+          <input id="fEstMarketPrice" placeholder="0.00">
+        </div>
+
+        <!-- Classification -->
+        <div class="form-row">
+          <label>State</label>
+          <input id="fState" placeholder="">
+        </div>
+        <div class="form-row">
+          <label>Tenure</label>
+          <input id="fTenure" placeholder="">
+        </div>
+        <div class="form-row">
+          <label>Category</label>
+          <input id="fCategory" placeholder="RESIDENTIAL / COMMERCIAL / LAND …">
+        </div>
+
+        <!-- Parties -->
+        <div class="form-row">
+          <label>Successful Agent</label>
+          <textarea id="fSuccessfulAgent" rows="2" placeholder=""></textarea>
+        </div>
+        <div class="form-row">
+          <label>Buyer Name</label>
+          <textarea id="fBuyerName" rows="2" placeholder=""></textarea>
+        </div>
+
+        <!-- Referral Fees -->
+        <div class="form-row">
+          <label>Referral Fee %</label>
+          <input id="fReferralFeeRatePct" placeholder="e.g., 1.25 (or 0.0125)">
+        </div>
+        <div class="form-row">
+          <label>Referral Fee Amount (RM)</label>
+          <input id="fReferralFeeAmount" placeholder="0.00">
+        </div>
+        <div class="form-row">
+          <label>Payment Status</label>
+          <input id="fPaymentStatus" placeholder="">
+        </div>
+
+        <!-- Address & Notes -->
+        <div class="form-row">
+          <label>Address</label>
+          <textarea id="fAddress" rows="2" placeholder=""></textarea>
+        </div>
+        <div class="form-row">
+          <label>Notes</label>
+          <textarea id="fNotes" rows="3" placeholder=""></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnCancel">Cancel</button>
+      <button class="btn primary" id="btnSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* THEME */
+(function(){
+  const saved = localStorage.getItem("psc_theme") || "light";
+  if(saved === "dark") document.body.classList.add("dark");
+  const btn = document.getElementById("themeBtn");
+  const update = () => {
+    const dark = document.body.classList.contains("dark");
+    btn.textContent = dark ? "☀️ Light" : "🌙 Dark";
+    btn.title = dark ? "Switch to Light Mode" : "Switch to Dark Mode";
+  };
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("psc_theme", document.body.classList.contains("dark") ? "dark" : "light");
+    update();
+  });
+  update();
+})();
+
+/* STORAGE */
+const ASSET_KEY = "psc_assets";
+function getAssets(){ return JSON.parse(localStorage.getItem(ASSET_KEY) || "[]"); }
+function saveAssets(d){ localStorage.setItem(ASSET_KEY, JSON.stringify(d)); }
+
+/* HELPERS */
+const $ = (id)=> document.getElementById(id);
+function h(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function nl2br(s){ return h(s).replace(/\r\n|\r|\n/g,"<br>"); }
+function money(n){ return "RM " + Number(n||0).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function parseDate(s){
+  if(!s) return null;
+  const str = String(s).trim();
+  if(str.includes("/")){ const [d,m,y]=str.split("/"); const dt=new Date(+y, +m-1, +d); return isNaN(dt)?null:dt; }
+  const dt = new Date(str); return isNaN(dt)?null:dt;
+}
+function ts(s){ return parseDate(s)?.getTime() || 0; }
+function monthKey(d){ const x = parseDate(d); return x ? x.toISOString().slice(0,7) : ""; }
+function yearOf(d){ const x = parseDate(d); return x ? x.getFullYear() : null; }
+
+// Normalize entity like dashboard
+function normEntity(s){
+  const u = String(s||"").toUpperCase().replace(/\s+/g," ").trim();
+  if(u.includes("SAM")) return "SAM";
+  if(u.includes("FIR")) return "FIR";
+  if(u.includes("RAM")) return "RAM";
+  if(u.includes("BANK")) return "BANKING";
+  return u || "N/A";
+}
+// Normalize channel
+function normChannel(c){
+  c = String(c||"").toUpperCase();
+  if(c.includes("PUBLIC")) return "PUBLIC AUCTION";
+  if(c.includes("PRIVATE")) return "PRIVATE TREATY";
+  if(c.includes("TENDER")) return "OPEN TENDER";
+  return c;
+}
+// Category grouping (for facet=category_group)
+function categoryGroup(raw){
+  const s = String(raw||"").toUpperCase().trim();
+  if (s === "AGRICULTURE" || s === "VACANT LAND") return "LAND";
+  if (s === "COMMERCIAL" || s === "INDUSTRIAL" || s === "LAND & BUILDING" || s === "LAND AND BUILDING") return "COMMERCIAL";
+  if (s === "HOSPITALITY") return "HOSPITALITY";
+  if (s === "RESIDENTIAL") return "RESIDENTIAL";
+  return "OTHERS";
+}
+// Referral helpers (for referred=1)
+function isNoRefFeeStatus(s){ return String(s||"").toUpperCase().includes("NO REFERRAL FEE"); }
+function rateToPercent(raw){ const r = +raw || 0; return r <= 1 ? r*100 : r; } // 0.0125 => 1.25%
+function eligibleReferral(a){
+  return String(a.Status||"").toUpperCase()==="SOLD"
+    && (+a.SalePrice||0) > 0
+    && rateToPercent(a.ReferralFeeRatePct) > 0
+    && !isNoRefFeeStatus(a.PaymentStatus);
+}
+// Payment status normalize (for payment=)
+function normPayStatus(s){
+  s = String(s||"").trim().toUpperCase();
+  if(!s) return "UNPAID";
+  if(s.includes("NO REFERRAL FEE")) return "NO REFERRAL FEE";
+  if(s.includes("PAID")) return "PAID";
+  if(s.includes("PART")) return "PARTIAL";
+  return s;
+}
+// NEW: Direct / No Agent helper (must match dashboard logic)
+function isNoAgent(a){
+  // Sold items with sale price > 0 and no referral rate
+  return (+a.SalePrice || 0) > 0 && rateToPercent(a.ReferralFeeRatePct) <= 0;
+}
+
+/* STATE */
+const state = {
+  q: localStorage.getItem("assets_q") || "",
+  sort: localStorage.getItem("assets_sort") || "id",
+  dir: localStorage.getItem("assets_sort_dir") || "desc"
+};
+function applyToolbarState(){
+  $("q").value = state.q;
+  $("sortBy").value = state.sort;
+  highlightSortButtons();
+}
+function persistToolbarState(){
+  localStorage.setItem("assets_q", $("q").value.trim());
+  localStorage.setItem("assets_sort", $("sortBy").value);
+  localStorage.setItem("assets_sort_dir", state.dir);
+}
+
+/* Check if URL contains filters coming from Dashboard */
+function hasUrlFilters(){
+  const q = new URLSearchParams(location.search);
+  const keys = ["status","entity","channel","year","month","agg","mode","auction","facet","value","referred","agent","payment","direct","view"]; // added direct
+  return keys.some(k => q.get(k));
+}
+
+/* Apply URL filters from Dashboard */
+function applyUrlParams(data){
+  const q = new URLSearchParams(location.search);
+  let list = [...data];
+
+  const status   = (q.get("status") || "").toUpperCase();
+  const entityQS = q.get("entity");
+  const channel  = q.get("channel");
+  const year     = q.get("year");
+  const month    = q.get("month");
+  const agg      = q.get("agg");
+  const mode     = q.get("mode");
+  const auction  = q.get("auction");
+  const facet    = q.get("facet");
+  const value    = q.get("value");
+  const referred = q.get("referred");
+  const agent    = q.get("agent");
+  const payment  = q.get("payment");
+  const direct   = q.get("direct"); // NEW
+  const view     = q.get("view");
+
+  if(status){ list = list.filter(a => String(a.Status||"").toUpperCase() === status); }
+  if(entityQS){
+    const set = new Set(entityQS.split(",").map(x => x.trim().toUpperCase()));
+    list = list.filter(a => set.has(normEntity(a.Entity)));
+  }
+  if(channel){ list = list.filter(a => normChannel(a.Channel) === String(channel).toUpperCase()); }
+
+  if(year && month){
+    const mm = String(month).padStart(2,"0");
+    if(agg === "month" || mode === "exact"){
+      const key = `${year}-${mm}`;
+      list = list.filter(a => monthKey(a.SoldDate) === key);
+    } else {
+      const cutoff = `${year}-${mm}`;
+      list = list.filter(a => {
+        const k = monthKey(a.SoldDate);
+        return k && k <= cutoff && yearOf(a.SoldDate) === +year;
+      });
+    }
+  } else if (year){
+    list = list.filter(a => yearOf(a.SoldDate) === +year);
+  }
+
+  if(auction === "with"){
+    const now = new Date(); const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    list = list.filter(a => {
+      const d = parseDate(a.AuctionDate);
+      return d && d >= firstOfThisMonth;
+    });
+  }
+  if(auction === "without"){
+    const now = new Date(); const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    list = list.filter(a => {
+      const d = parseDate(a.AuctionDate);
+      return !d || d < firstOfThisMonth;
+    });
+  }
+
+  if (facet && value){
+    const val = String(value).toUpperCase();
+    if (facet === "category_group"){
+      list = list.filter(a => categoryGroup(a.Category) === val);
+    } else if (facet === "tenure"){
+      list = list.filter(a => String(a.Tenure||"").toUpperCase() === val);
+    } else if (facet === "state"){
+      list = list.filter(a => String(a.State||"").toUpperCase() === val);
+    }
+  }
+
+  // Mutually exclusive intent: referred vs direct. If both present (rare), referred wins.
+  if(referred === "1"){ list = list.filter(eligibleReferral); }
+  else if(direct === "1"){ list = list.filter(isNoAgent); } // NEW
+
+  if(agent){
+    const want = String(agent).trim().toUpperCase();
+    list = list.filter(a => String(a.SuccessfulAgent||"").trim().toUpperCase() === want);
+  }
+
+  if(payment){
+    const want = String(payment).toUpperCase();
+    list = list.filter(a => normPayStatus(a.PaymentStatus) === want);
+  }
+
+  // Label
+  const info = [];
+  if(status) info.push(`Status: ${status}`);
+  if(year && month){
+    if(agg === "month" || mode === "exact"){ info.push(`Month: ${year}-${String(month).padStart(2,"0")}`); }
+    else { info.push(`YTD up to ${year}-${String(month).padStart(2,"0")}`); }
+  } else if (year) info.push(`Year: ${year}`);
+  if(entityQS) info.push(`Entity: ${entityQS}`);
+  if(channel)  info.push(`Channel: ${channel}`);
+  if(auction)  info.push(auction === "with" ? "With Auction Date" : "Without Auction Date");
+  if(facet && value){
+    const label =
+      facet === "category_group" ? `Category Group: ${value}` :
+      facet === "tenure"         ? `Tenure: ${value}` :
+      facet === "state"          ? `State: ${value}` :
+      `${facet}: ${value}`;
+    info.push(label);
+  }
+  if(referred === "1") info.push("Introducer Only");
+  if(direct === "1")   info.push("Direct / No Agent"); // NEW
+  if(agent)   info.push(`Agent: ${agent}`);
+  if(payment) info.push(`Payment: ${payment}`);
+
+  const publicationView = (status === "PUBLISHED" || view === "pub");
+
+  return {
+    list,
+    label: info.length ? "Filtered by → " + info.join(" | ") : "",
+    publicationView
+  };
+}
+
+/* RENDER */
+function renderAssets(){
+  const tbody = $("assetTableBody");
+
+  // If opening via dashboard with URL filters, clear any stale search term so it doesn't hide results
+  if (hasUrlFilters() && $("q").value.trim()) {
+    $("q").value = "";
+    localStorage.setItem("assets_q", "");
+  }
+
+  const q = $("q").value.trim().toUpperCase();
+  const sortBy = $("sortBy").value;
+
+  const all = getAssets();
+  const { list: urlFiltered, label, publicationView } = applyUrlParams(all);
+
+  // UI: filter info + pub badge + show/hide Clear Filters button
+  const infoEl = document.getElementById("filterInfo");
+  if(infoEl) infoEl.textContent = label;
+  const pill = document.getElementById("viewPill");
+  if(pill) pill.style.display = publicationView ? "inline-block" : "none";
+  const showClear = hasUrlFilters() || !!q;
+  const clearBtn = $("btnClearFilters");
+  if (clearBtn) clearBtn.style.display = showClear ? "inline-block" : "none";
+
+  // Map rows + derived fields
+  const rows = urlFiltered.map((a)=>({
+    ...a,
+    _price: (+a.SalePrice||0) || (+a.ReservePrice||0) || (+a.EstMarketPrice||0),
+    _soldTS: ts(a.SoldDate),
+    _auctionTS: ts(a.AuctionDate),
+    _listTS: ts(a.ListingDate)
+  }));
+
+  // Search filter
+  const filtered = rows.filter(r=>{
+    if(!q) return true;
+    const fields = [
+      r.AssetID, r.CustomerName, r.SuccessfulAgent, r.BuyerName, r.Address, r.Entity,
+      r.Status, r.Channel, r.Category, r.State
+    ].map(x => String(x||"").toUpperCase());
+    return fields.some(v => v.includes(q));
+  });
+
+  // Sort
+  filtered.sort((a,b)=>{
+    switch(sortBy){
+      case "price_desc": return (b._price - a._price) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "price_asc":  return (a._price - b._price) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "sold_desc":  return (b._soldTS - a._soldTS) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "sold_asc":   return (a._soldTS - b._soldTS) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "auction_desc": return (b._auctionTS - a._auctionTS) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "auction_asc":  return (a._auctionTS - b._auctionTS) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "list_desc":  return (b._listTS - a._listTS) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      case "list_asc":   return (a._listTS - b._listTS) || String(a.AssetID||"").localeCompare(String(b.AssetID||""),undefined,{numeric:true});
+      default:           return String(a.AssetID||"").localeCompare(String(b.AssetID||""), undefined, {numeric:true});
+    }
+  });
+
+  // Render rows (Asset ID click → send full context to Search)
+  tbody.innerHTML = filtered.map(r=>`
+    <tr>
+      <td class="center"><a class="link" href="#" onclick="openAssetSearch('${encodeURIComponent(r.AssetID||"")}');return false;">${h(r.AssetID||"")}</a></td>
+      <td class="center">${h(r.Entity||"")}</td>
+      <td class="multiline col-customer">${nl2br(r.CustomerName||"")}</td>
+      <td class="center">${h(r.Status||"")}</td>
+      <td class="center">${h(r.ListingDate||"")}</td>
+      <td class="center">${h(r.SoldDate||"")}</td>
+      <td class="center">${h(r.AuctionDate||"")}</td>
+      <td class="center">${h(r.Channel||"")}</td>
+      <td class="right">${r._price ? money(r._price) : "–"}</td>
+      <td class="center">${h(r.Category||"")}</td>
+      <td class="multiline col-agent">${nl2br(r.SuccessfulAgent||"")}</td>
+      <td class="multiline col-buyer">${nl2br(r.BuyerName||"")}</td>
+      <td class="multiline col-address">${nl2br(r.Address||"")}</td>
+      <td class="center">
+        <button class="btn ghost" onclick="openEdit('${encodeURIComponent(r.AssetID||"")}')">✏️ Edit</button>
+        <button class="btn ghost" onclick="deleteAsset('${encodeURIComponent(r.AssetID||"")}')">🗑</button>
+      </td>
+    </tr>
+  `).join("") || `<tr><td class="center" colspan="14">No assets match your filters.</td></tr>`;
+}
+
+/* QUICK SORT */
+function setSortKey(key){
+  const currentKey = ($("sortBy").value || "id").replace(/_(asc|desc)$/,'');
+  if(currentKey === key){
+    state.dir = (state.dir === "desc") ? "asc" : "desc";
+  }else{
+    state.dir = "desc";
+  }
+  $("sortBy").value = key + "_" + state.dir;
+  persistToolbarState();
+  highlightSortButtons();
+  renderAssets();
+}
+function highlightSortButtons(){
+  const currentKey = ($("sortBy").value || "id").replace(/_(asc|desc)$/,'');
+  document.querySelectorAll(".sort-buttons .sortBtn").forEach(btn=>{
+    const label = btn.dataset.key.charAt(0).toUpperCase()+btn.dataset.key.slice(1);
+    const active = btn.dataset.key === currentKey;
+    btn.classList.toggle("active", active);
+    btn.textContent = active ? `${label} ${state.dir==="asc"?"↑":"↓"}` : label;
+  });
+}
+
+/* CSV PARSE / EXPORT / IMPORT */
+function parseCSV(text){
+  text = String(text||"").replace(/^\uFEFF/,"");
+  const rows = [];
+  let row = [], col = "", i = 0, inQuotes = false;
+  while(i < text.length){
+    const ch = text[i];
+    if(ch === '"'){
+      if(inQuotes && text[i+1] === '"'){ col += '"'; i += 2; continue; }
+      inQuotes = !inQuotes; i++; continue;
+    }
+    if(ch === ',' && !inQuotes){ row.push(col); col = ""; i++; continue; }
+    if((ch === '\n' || ch === '\r') && !inQuotes){
+      if(ch === '\r' && text[i+1] === '\n') i++;
+      rows.push(row.concat(col)); row = []; col = ""; i++; continue;
+    }
+    col += ch; i++;
+  }
+  if(col.length > 0 || inQuotes || row.length) rows.push(row.concat(col));
+  return rows;
+}
+function csvEscape(v){
+  let s = String(v ?? "");
+  if(/[",\r\n]/.test(s)){ s = '"' + s.replace(/"/g,'""') + '"'; }
+  return s;
+}
+function exportAssets(){
+  const data = getAssets();
+  const headers = [
+    "AssetID","Entity","CustomerName","Status",
+    "ListingDate","SoldDate","AuctionDate","Channel",
+    "SalePrice","ReservePrice","EstMarketPrice",
+    "State","Tenure","Category",
+    "SuccessfulAgent","BuyerName",
+    "ReferralFeeRatePct","ReferralFeeAmount","PaymentStatus",
+    "Address","Notes"
+  ];
+  const lines = [];
+  lines.push(headers.map(csvEscape).join(","));
+  data.forEach(o => lines.push(headers.map(hd => csvEscape(o[hd] ?? "")).join(",")));
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8;"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = data.length ? "assets.csv" : "assets_template.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$("btnExport").addEventListener("click", exportAssets);
+
+$("assetCsv").addEventListener("change", (e)=>{
+  const file = e.target.files?.[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const rows = parseCSV(reader.result);
+      if(!rows.length) return alert("Empty CSV");
+      const hdr = rows.shift().map(x=>String(x||""));
+      const idx = name => hdr.findIndex(h => String(h).trim().toUpperCase() === name.toUpperCase());
+      const H = {
+        AssetID: idx("AssetID"),
+        Entity: idx("Entity"),
+        CustomerName: idx("CustomerName"),
+        Status: idx("Status"),
+        ListingDate: idx("ListingDate"),
+        SoldDate: idx("SoldDate"),
+        AuctionDate: idx("AuctionDate"),
+        Channel: idx("Channel"),
+        SalePrice: idx("SalePrice"),
+        ReservePrice: idx("ReservePrice"),
+        EstMarketPrice: idx("EstMarketPrice"),
+        State: idx("State"),
+        Tenure: idx("Tenure"),
+        Category: idx("Category"),
+        SuccessfulAgent: idx("SuccessfulAgent"),
+        BuyerName: idx("BuyerName"),
+        ReferralFeeRatePct: idx("ReferralFeeRatePct"),
+        ReferralFeeAmount: idx("ReferralFeeAmount"),
+        PaymentStatus: idx("PaymentStatus"),
+        Address: idx("Address"),
+        Notes: idx("Notes")
+      };
+      if(H.AssetID < 0) return alert("CSV must include 'AssetID' column.");
+
+      const incoming = rows.map(r => ({
+        AssetID: r[H.AssetID] || "",
+        Entity: H.Entity>=0 ? r[H.Entity] : "",
+        CustomerName: H.CustomerName>=0 ? r[H.CustomerName] : "",
+        Status: H.Status>=0 ? r[H.Status] : "",
+        ListingDate: H.ListingDate>=0 ? r[H.ListingDate] : "",
+        SoldDate: H.SoldDate>=0 ? r[H.SoldDate] : "",
+        AuctionDate: H.AuctionDate>=0 ? r[H.AuctionDate] : "",
+        Channel: H.Channel>=0 ? r[H.Channel] : "",
+        SalePrice: H.SalePrice>=0 ? r[H.SalePrice] : "",
+        ReservePrice: H.ReservePrice>=0 ? r[H.ReservePrice] : "",
+        EstMarketPrice: H.EstMarketPrice>=0 ? r[H.EstMarketPrice] : "",
+        State: H.State>=0 ? r[H.State] : "",
+        Tenure: H.Tenure>=0 ? r[H.Tenure] : "",
+        Category: H.Category>=0 ? r[H.Category] : "",
+        SuccessfulAgent: H.SuccessfulAgent>=0 ? r[H.SuccessfulAgent] : "",
+        BuyerName: H.BuyerName>=0 ? r[H.BuyerName] : "",
+        ReferralFeeRatePct: H.ReferralFeeRatePct>=0 ? r[H.ReferralFeeRatePct] : "",
+        ReferralFeeAmount: H.ReferralFeeAmount>=0 ? r[H.ReferralFeeAmount] : "",
+        PaymentStatus: H.PaymentStatus>=0 ? r[H.PaymentStatus] : "",
+        Address: H.Address>=0 ? r[H.Address] : "",
+        Notes: H.Notes>=0 ? r[H.Notes] : ""
+      })).filter(x=> x.AssetID && x.AssetID.trim());
+
+      const existing = getAssets();
+      const map = new Map(existing.map(a => [String(a.AssetID||"").toUpperCase().trim(), a]));
+      incoming.forEach(n=>{
+        const k = String(n.AssetID).toUpperCase().trim();
+        if(map.has(k)){ Object.assign(map.get(k), n); }
+        else map.set(k, n);
+      });
+      const merged = Array.from(map.values()).sort((a,b)=> String(a.AssetID||"").localeCompare(String(b.AssetID||""), undefined, {numeric:true}));
+      saveAssets(merged);
+      renderAssets();
+      alert("Import completed.");
+    }catch(err){
+      console.error(err);
+      alert("Import failed. Please check the CSV format.");
+    }
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+});
+
+/* ADD / EDIT MODAL */
+let editingId = null;
+function openDlg(mode, assetId){
+  $("dlgTitle").textContent = mode==="add" ? "Add Asset" : "Edit Asset";
+  const dlg = $("dlg"); dlg.style.display = "flex"; dlg.setAttribute("aria-hidden","false");
+
+  if(mode==="add"){
+    editingId = null;
+    ["fAssetID","fEntity","fCustomerName","fStatus","fListingDate","fSoldDate","fAuctionDate","fChannel",
+     "fSalePrice","fReservePrice","fEstMarketPrice","fState","fTenure","fCategory","fSuccessfulAgent","fBuyerName",
+     "fReferralFeeRatePct","fReferralFeeAmount","fPaymentStatus","fAddress","fNotes"
+    ].forEach(id => { const el=$(id); if(!el) return; el.value = ""; });
+  }else{
+    editingId = assetId;
+    const a = getAssets().find(x => String(x.AssetID||"") === assetId);
+    if(!a){ alert("Asset not found."); closeDlg(); return; }
+    $("fAssetID").value = a.AssetID || "";
+    $("fEntity").value = a.Entity || "";
+    $("fCustomerName").value = a.CustomerName || "";
+    $("fStatus").value = a.Status || "";
+    $("fListingDate").value = a.ListingDate || "";
+    $("fSoldDate").value = a.SoldDate || "";
+    $("fAuctionDate").value = a.AuctionDate || "";
+    $("fChannel").value = a.Channel || "";
+    $("fSalePrice").value = a.SalePrice || "";
+    $("fReservePrice").value = a.ReservePrice || "";
+    $("fEstMarketPrice").value = a.EstMarketPrice || "";
+    $("fState").value = a.State || "";
+    $("fTenure").value = a.Tenure || "";
+    $("fCategory").value = a.Category || "";
+    $("fSuccessfulAgent").value = a.SuccessfulAgent || "";
+    $("fBuyerName").value = a.BuyerName || "";
+    $("fReferralFeeRatePct").value = a.ReferralFeeRatePct || "";
+    $("fReferralFeeAmount").value = a.ReferralFeeAmount || "";
+    $("fPaymentStatus").value = a.PaymentStatus || "";
+    $("fAddress").value = a.Address || "";
+    $("fNotes").value = a.Notes || "";
+  }
+
+  // ESC close
+  document.addEventListener("keydown", escHandler);
+}
+function openEdit(encodedId){
+  const id = decodeURIComponent(encodedId);
+  openDlg("edit", id);
+}
+function closeDlg(){
+  $("dlg").style.display = "none"; $("dlg").setAttribute("aria-hidden","true");
+  document.removeEventListener("keydown", escHandler);
+}
+function escHandler(e){ if(e.key === "Escape") closeDlg(); }
+
+$("btnAdd").addEventListener("click", ()=> openDlg("add"));
+$("btnCancel").addEventListener("click", closeDlg);
+$("dlg").addEventListener("click", (e)=>{ if(e.target.id==="dlg") closeDlg(); });
+
+$("btnSave").addEventListener("click", ()=>{
+  const rec = {
+    AssetID: $("fAssetID").value.trim(),
+    Entity: $("fEntity").value.trim(),
+    CustomerName: $("fCustomerName").value.trim(),
+    Status: $("fStatus").value.trim(),
+    ListingDate: $("fListingDate").value.trim(),
+    SoldDate: $("fSoldDate").value.trim(),
+    AuctionDate: $("fAuctionDate").value.trim(),
+    Channel: $("fChannel").value.trim(),
+    SalePrice: $("fSalePrice").value.trim(),
+    ReservePrice: $("fReservePrice").value.trim(),
+    EstMarketPrice: $("fEstMarketPrice").value.trim(),
+    State: $("fState").value.trim(),
+    Tenure: $("fTenure").value.trim(),
+    Category: $("fCategory").value.trim(),
+    SuccessfulAgent: $("fSuccessfulAgent").value.trim(),
+    BuyerName: $("fBuyerName").value.trim(),
+    ReferralFeeRatePct: $("fReferralFeeRatePct").value.trim(),
+    ReferralFeeAmount: $("fReferralFeeAmount").value.trim(),
+    PaymentStatus: $("fPaymentStatus").value.trim(),
+    Address: $("fAddress").value.trim(),
+    Notes: $("fNotes").value.trim()
+  };
+  if(!rec.AssetID) return alert("Asset ID is required.");
+
+  const all = getAssets();
+  const idx = all.findIndex(x => String(x.AssetID||"") === (editingId ?? rec.AssetID));
+  if(idx >= 0){
+    all[idx] = {...all[idx], ...rec, AssetID: rec.AssetID};     // update, allow ID change
+  }else{
+    if(all.some(x => String(x.AssetID||"") === rec.AssetID)){
+      if(!confirm("Asset with same ID exists. Overwrite?")) return;
+      const j = all.findIndex(x => String(x.AssetID||"") === rec.AssetID);
+      all[j] = {...all[j], ...rec};
+    }else{
+      all.push(rec);
+    }
+  }
+  all.sort((a,b)=> String(a.AssetID||"").localeCompare(String(b.AssetID||""), undefined, {numeric:true}));
+  saveAssets(all);
+  closeDlg();
+  renderAssets();
+});
+
+/* DELETE */
+function deleteAsset(encodedId){
+  const id = decodeURIComponent(encodedId);
+  if(!confirm("Delete this asset?")) return;
+  const all = getAssets().filter(a => String(a.AssetID||"") !== id);
+  saveAssets(all);
+  renderAssets();
+}
+
+/* OPEN IN SEARCH with full context (so Search shows all fields) */
+function openAssetSearch(encodedId){
+  const id = decodeURIComponent(encodedId);
+  const a = getAssets().find(x => String(x.AssetID||"") === id);
+  if(a){
+    const payload = { mode: "asset", asset: a };
+    sessionStorage.setItem("psc_search_context", JSON.stringify(payload));
+  }
+  location.href = `search.html?mode=asset&q=${encodeURIComponent(id)}`;
+}
+
+/* FILTER/SORT HANDLERS */
+["q","sortBy"].forEach(id=>{
+  $(id).addEventListener("input", ()=>{ persistToolbarState(); renderAssets(); });
+  $(id).addEventListener("change", ()=>{ persistToolbarState(); renderAssets(); });
+});
+document.addEventListener("DOMContentLoaded", ()=>{
+  document.querySelectorAll(".sort-buttons .sortBtn").forEach(btn=>{
+    btn.addEventListener("click", ()=> setSortKey(btn.dataset.key));
+  });
+  $("btnClearFilters").addEventListener("click", ()=>{
+    // Clear search + navigate to base page (drops URL filters)
+    localStorage.removeItem("assets_q");
+    location.href = "assets.html";
+  });
+});
+
+/* ADDRESS TOGGLE (remember) */
+(function initAddressToggle(){
+  const wrap = document.getElementById('tblWrap');
+  const btn = document.getElementById('btnToggleAddress');
+  const key = 'psc_assets_show_address';
+  const saved = localStorage.getItem(key) === '1';
+  if(saved) wrap.classList.add('show-address');
+  btn.textContent = wrap.classList.contains('show-address') ? '🙈 Hide Address' : '👁️ Show Address';
+  btn.addEventListener('click', ()=>{
+    wrap.classList.toggle('show-address');
+    const on = wrap.classList.contains('show-address');
+    btn.textContent = on ? '🙈 Hide Address' : '👁️ Show Address';
+    localStorage.setItem(key, on ? '1' : '0');
+  });
+})();
+
+/* INIT */
+applyToolbarState();
+renderAssets();
+</script>
+
+</body>
+</html>
